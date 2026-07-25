@@ -1,0 +1,22 @@
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import App from './App';
+import { ThemeProvider } from './context/ThemeContext';
+import { UserProvider } from './context/UserContext';
+import { ProgressProvider } from './context/ProgressContext';
+import './index.css';
+
+createRoot(document.getElementById('root')).render(
+  <StrictMode>
+    <BrowserRouter>
+      <ThemeProvider>
+        <UserProvider>
+          <ProgressProvider>
+            <App />
+          </ProgressProvider>
+        </UserProvider>
+      </ThemeProvider>
+    </BrowserRouter>
+  </StrictMode>,
+);

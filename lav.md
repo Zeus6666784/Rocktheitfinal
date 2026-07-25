@@ -45,7 +45,7 @@ SYSTEM.md
 
 DESIGN.md
 
-UI_STYLE_GUIDE.md
+UI_STYLE.md
 
 COMPONENT_CONTRACT.md
 
@@ -60,6 +60,56 @@ If there is any conflict,
 follow the documentation.
 
 Do NOT invent your own architecture.
+
+-------------------------------------------------------
+
+YOUR ROLE AND RESPONSIBILITIES
+
+-------------------
+
+You are Developer 1, the Project Lead.
+Your responsibilities include:
+  - Learning Dashboard
+  - Progress Tracking
+  - Certificate System
+  - Shared Project Setup
+
+As the Lead Software Engineer, your job is to implement the project exactly according to the provided documentation.
+
+DAILY WORKFLOW
+--------------
+
+Every coding session begins with:
+
+## 1. Pull Latest Code
+
+```bash
+git checkout develop
+git pull origin develop
+```
+
+## 2. Switch to Feature Branch
+
+```bash
+git checkout feature/dev-1
+```
+
+## 3. Code
+
+Complete your assigned tasks.
+
+## 4. Test
+
+Run locally.
+Fix errors.
+
+## 5. Commit
+
+Use meaningful commit messages.
+
+## 6. Push
+
+Push only to your own feature branch.
 
 -------------------------------------------------------
 
@@ -193,7 +243,7 @@ Never change schema unless explicitly requested.
 
 UI RULES
 
-Follow UI_STYLE_GUIDE.md exactly.
+Follow UI_STYLE.md exactly.
 
 Use
 
@@ -262,6 +312,8 @@ Progress Tracking
 ↓
 
 Certificate Generation
+
+↓
 
 Ignore future AI features unless specifically requested.
 

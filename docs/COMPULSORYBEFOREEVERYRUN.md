@@ -6,7 +6,7 @@ Always assume the following documents exist and are the source of truth:
 
 - SYSTEM.md
 - DESIGN.md
-- UI_STYLE_GUIDE.md
+- UI_STYLE.md
 - COMPONENT_CONTRACT.md
 - API.md
 - DATABASE.md
