@@ -42,12 +42,14 @@ export default function HeroSection({
             variant="primary"
             icon={ArrowRight}
             onClick={primaryAction}
+            magnetic
           />
           <PrimaryButton
             label={secondaryLabel}
             variant="secondary"
             icon={PlayCircle}
             onClick={secondaryAction}
+            magnetic
           />
         </div>
 

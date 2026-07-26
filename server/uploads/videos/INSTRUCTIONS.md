@@ -11,14 +11,19 @@ new `videoUrl` paths:
 cd server && npm run seed
 ```
 
-## Required files for the current demo
+## Demo placeholders
 
-| Filename                | Used by                                              | Suggested source |
-| ----------------------- | ---------------------------------------------------- | ---------------- |
-| `demo.mp4`              | All "Deep Focus" lectures + any lecture not yet mapped | Any short demo MP4 — keep under ~30MB so download stays snappy |
-| `react-usestate.mp4`    | React Foundations lectures 1, 2, 3                    | `https://www.youtube.com/watch?v=O6P86uwfdR0` (Web Dev Simplified - "Learn useState In 15 Minutes") |
-| `react-useeffect.mp4`   | React Foundations lectures 4, 5                      | `https://www.youtube.com/watch?v=0ZJgIjIuY7U` (Web Dev Simplified - "Learn useEffect In 13 Minutes") |
-| `deep-work.mp4`         | Deep Focus for Builders lectures 1-4                  | `https://www.youtube.com/watch?v=xJYlhhT7hyE` (Cal Newport - "Core Idea: Deep Work") |
+To make the demo playable before you download anything, four small
+placeholder MP4s were generated with ffmpeg and committed. They are
+obvious test patterns (5 seconds, dark purple background, white text
+with the file's purpose). Replace them whenever you want.
+
+| Filename                  | Used by                                              | Status    |
+| ------------------------- | ---------------------------------------------------- | --------- |
+| `demo.mp4`                | Other courses' lectures                              | Placeholder |
+| `react-usestate.mp4`      | React Foundations lectures 1, 2, 3                    | Placeholder |
+| `react-useeffect.mp4`     | React Foundations lectures 4, 5                      | Placeholder |
+| `deep-work.mp4`           | Deep Focus for Builders lectures 1-4                  | Placeholder |
 
 If a filename is missing, the Lecture document will point to a URL that
 returns 404 and the player will render an empty state. That's the

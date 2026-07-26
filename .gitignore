@@ -24,6 +24,13 @@ Thumbs.db
 server/uploads/resources/*
 !server/uploads/resources/.gitkeep
 
+# Server videos: placeholder MP4s are committed; user-uploaded ones are ignored.
+server/uploads/videos/*.mp4
+!server/uploads/videos/demo.mp4
+!server/uploads/videos/react-usestate.mp4
+!server/uploads/videos/react-useeffect.mp4
+!server/uploads/videos/deep-work.mp4
+
 # Logs
 *.log
 npm-debug.log*
