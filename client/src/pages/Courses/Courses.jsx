@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import CategoryChip from '../../components/common/CategoryChip/CategoryChip';
 import SearchBar from '../../components/common/SearchBar/SearchBar';
 import CourseCard from '../../components/common/CourseCard/CourseCard';
 import EmptyState from '../../components/common/EmptyState/EmptyState';
 import Loader from '../../components/common/Loader/Loader';
 import ErrorState from '../../components/common/ErrorState/ErrorState';
+import HoverGlow from '../../components/common/HoverGlow/HoverGlow';
 import { listCourses } from '../../services/courses';
 import { CATEGORIES } from '../../mocks/catalog';
 
@@ -113,22 +115,44 @@ export default function Courses() {
         />
       ) : (
         <>
-          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: {},
+              visible: { transition: { staggerChildren: 0.06 } },
+            }}
+            className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+          >
             {items.map((c) => (
-              <Link key={c.id} to={`/courses/${c.id}`} className="block">
-                <CourseCard
-                  thumbnail={c.thumbnail}
-                  title={c.title}
-                  instructor={c.instructor}
-                  duration={c.duration}
-                  rating={c.rating}
-                  students={c.students}
-                  category={c.category}
-                  progress={c.progress}
-                />
-              </Link>
+              <motion.div
+                key={c.id}
+                variants={{
+                  hidden: { opacity: 0, y: 16 },
+                  visible: {
+                    opacity: 1,
+                    y: 0,
+                    transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
+                  },
+                }}
+              >
+                <HoverGlow spread={140} intensity={0.9} className="h-full">
+                  <Link key={c.id} to={`/courses/${c.id}`} className="block h-full">
+                    <CourseCard
+                      thumbnail={c.thumbnail}
+                      title={c.title}
+                      instructor={c.instructor}
+                      duration={c.duration}
+                      rating={c.rating}
+                      students={c.students}
+                      category={c.category}
+                      progress={c.progress}
+                    />
+                  </Link>
+                </HoverGlow>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
 
           {totalPages > 1 ? (
             <nav aria-label="Pagination" className="flex items-center justify-center gap-2 pt-4">

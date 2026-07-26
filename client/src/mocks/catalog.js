@@ -87,14 +87,29 @@ export const INSTRUCTORS = [
   },
 ];
 
-const LECTURE_VIDEO = 'https://www.youtube.com/watch?v=Ke90Tje7VS0';
+// Lecture videos live under /uploads/videos/ (served by Express static).
+// Files drop into server/uploads/videos/ — see INSTRUCTIONS.md for the
+// mapping + yt-dlp commands. The catalog points at filenames; the seed
+// just copies those into MongoDB.
+const LECTURE_VIDEO_DEFAULT = '/uploads/videos/demo.mp4';
+const LECTURE_VIDEO_REACT_USESTATE = '/uploads/videos/react-usestate.mp4';
+const LECTURE_VIDEO_REACT_USEEFFECT = '/uploads/videos/react-useeffect.mp4';
+const LECTURE_VIDEO_DEEP_WORK = '/uploads/videos/deep-work.mp4';
 
-function makeLectures(courseId, titles) {
+function makeLectures(courseId, titles, videoUrls) {
+  // Ponytail: if the caller hands a single string or array, normalise to an array.
+  // Falls back to the demo MP4 when a course doesn't supply per-lecture URLs.
+  const urls = Array.isArray(videoUrls)
+    ? videoUrls
+    : videoUrls
+      ? [videoUrls]
+      : titles.map(() => LECTURE_VIDEO_DEFAULT);
+
   return titles.map((t, idx) => ({
     _id: `${courseId}-l${idx + 1}`,
     courseId,
     title: t.title,
-    videoUrl: LECTURE_VIDEO,
+    videoUrl: urls[idx] ?? LECTURE_VIDEO_DEFAULT,
     duration: t.duration,
     order: idx + 1,
     resources: [
@@ -133,6 +148,12 @@ export const COURSES = [
       { title: 'Hooks in depth', duration: '14:05' },
       { title: 'State management', duration: '12:30' },
       { title: 'Building your first app', duration: '18:22' },
+    ], [
+      LECTURE_VIDEO_REACT_USESTATE,
+      LECTURE_VIDEO_REACT_USESTATE,
+      LECTURE_VIDEO_REACT_USESTATE,
+      LECTURE_VIDEO_REACT_USEEFFECT,
+      LECTURE_VIDEO_REACT_USEEFFECT,
     ]),
   },
   {
@@ -156,7 +177,7 @@ export const COURSES = [
       { title: 'Designing your environment', duration: '11:42' },
       { title: 'Rituals that survive bad days', duration: '9:18' },
       { title: 'Recovering when you slip', duration: '7:55' },
-    ]),
+    ], LECTURE_VIDEO_DEEP_WORK),
   },
   {
     _id: 'design',

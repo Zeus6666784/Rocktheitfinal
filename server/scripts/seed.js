@@ -19,7 +19,30 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const catalogPath = path.resolve(__dirname, '../../client/src/mocks/catalog.js');
 const { INSTRUCTORS, COURSES } = await import(pathToFileURL(catalogPath).href);
 
-const SAMPLE_VIDEO = 'https://www.youtube.com/watch?v=Ke90Tje7VS0';
+// Lecture videos live under /uploads/videos/ (served by Express static).
+// Files drop into server/uploads/videos/ — see INSTRUCTIONS.md there for
+// the mapping + yt-dlp commands. The catalog (client/src/mocks/catalog.js)
+// is the source of truth; the seed copies those videoUrls into Mongo.
+const VIDEO_DEFAULT = '/uploads/videos/demo.mp4';
+const VIDEO_REACT_USESTATE = '/uploads/videos/react-usestate.mp4';
+const VIDEO_REACT_USEEFFECT = '/uploads/videos/react-useeffect.mp4';
+const VIDEO_DEEP_WORK = '/uploads/videos/deep-work.mp4';
+
+const COURSE_VIDEOS = {
+  demo: [VIDEO_REACT_USESTATE, VIDEO_REACT_USESTATE, VIDEO_REACT_USESTATE, VIDEO_REACT_USEEFFECT, VIDEO_REACT_USEEFFECT],
+  focus: VIDEO_DEEP_WORK,
+  design: VIDEO_DEFAULT,
+  data: VIDEO_DEFAULT,
+  writing: VIDEO_DEFAULT,
+  ml: VIDEO_DEFAULT,
+};
+
+function videoUrlFor(courseId, index) {
+  const v = COURSE_VIDEOS[courseId];
+  if (Array.isArray(v)) return v[index] ?? VIDEO_DEFAULT;
+  if (v) return v;
+  return VIDEO_DEFAULT;
+}
 
 async function main() {
   if (!process.env.MONGODB_URI) throw new Error('MONGODB_URI is not set');
@@ -79,14 +102,14 @@ async function main() {
     );
 
     const lectureIds = [];
-    for (const lec of c.lectures) {
+    for (const [idx, lec] of c.lectures.entries()) {
       const lectureDoc = await Lecture.findOneAndUpdate(
         { courseId: course._id, order: lec.order },
         {
           $set: {
             courseId: course._id,
             title: lec.title,
-            videoUrl: SAMPLE_VIDEO,
+            videoUrl: videoUrlFor(c._id, idx),
             duration: parseDuration(lec.duration),
             order: lec.order,
             resources: lec.resources || [],

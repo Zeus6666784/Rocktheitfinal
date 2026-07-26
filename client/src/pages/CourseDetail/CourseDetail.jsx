@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { BookOpen } from 'lucide-react';
 import CourseBanner from '../../components/course/CourseBanner/CourseBanner';
 import PlaylistItem from '../../components/common/PlaylistItem/PlaylistItem';
 import InstructorCard from '../../components/common/InstructorCard/InstructorCard';
 import EnrollButton from '../../components/course/EnrollButton/EnrollButton';
+import HoverGlow from '../../components/common/HoverGlow/HoverGlow';
 import Loader from '../../components/common/Loader/Loader';
 import ErrorState from '../../components/common/ErrorState/ErrorState';
 import { getCourse } from '../../services/courses';
@@ -79,9 +81,27 @@ export default function CourseDetail() {
               {lectures.length} lectures - {totalDurationLabel}
             </span>
           </header>
-          <ol className="rounded-card bg-surface border border-line overflow-hidden">
+          <motion.ol
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: {},
+              visible: { transition: { staggerChildren: 0.05, delayChildren: 0.1 } },
+            }}
+            className="rounded-card bg-surface border border-line overflow-hidden"
+          >
             {lectures.map((lecture, idx) => (
-              <li key={lecture.id ?? lecture._id}>
+              <motion.li
+                key={lecture.id ?? lecture._id}
+                variants={{
+                  hidden: { opacity: 0, x: -8 },
+                  visible: {
+                    opacity: 1,
+                    x: 0,
+                    transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
+                  },
+                }}
+              >
                 <PlaylistItem
                   lectureNumber={lecture.order ?? idx + 1}
                   title={lecture.title}
@@ -90,9 +110,9 @@ export default function CourseDetail() {
                   locked={Boolean(lecture.locked)}
                   active={Boolean(lecture.active)}
                 />
-              </li>
+              </motion.li>
             ))}
-          </ol>
+          </motion.ol>
         </div>
 
         <aside className="space-y-6">
@@ -121,7 +141,9 @@ export default function CourseDetail() {
           </section>
 
           <section className="rounded-card bg-surface border border-line p-5">
-            <EnrollButton courseId={course.id ?? id} courseTitle={course.title} />
+            <HoverGlow spread={140} intensity={0.7}>
+              <EnrollButton courseId={course.id ?? id} courseTitle={course.title} />
+            </HoverGlow>
             {isComplete ? (
               <p className="mt-3 text-small text-success">You've completed this course.</p>
             ) : null}

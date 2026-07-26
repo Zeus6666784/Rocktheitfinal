@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { FileText, Download, Award, Sparkles } from 'lucide-react';
 import jsPDF from 'jspdf';
 import LearningLayout from '../../components/learning/LearningLayout/LearningLayout';
@@ -9,6 +10,7 @@ import ResourceCard from '../../components/learning/ResourceCard/ResourceCard';
 import CertificateCard from '../../components/certificate/CertificateCard/CertificateCard';
 import ChapterList from '../../components/learning/ChapterList/ChapterList';
 import LectureNavigator from '../../components/learning/LectureNavigator/LectureNavigator';
+import HoverGlow from '../../components/common/HoverGlow/HoverGlow';
 import Loader from '../../components/common/Loader/Loader';
 import ErrorState from '../../components/common/ErrorState/ErrorState';
 import { getCourse } from '../../services/courses';
@@ -348,15 +350,22 @@ export default function Learning() {
       }
     >
       {certificateEligible ? (
-        <section id="certificate">
-          <CertificateCard
-            courseName={course.title}
-            userName="Student"
-            completedDate={new Date().toISOString()}
-            certificateNumber={`LF-DEMO-${String(course.id ?? courseId).slice(-6).toUpperCase()}`}
-            download={handleDownloadCertificate}
-          />
-        </section>
+        <motion.section
+          id="certificate"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <HoverGlow spread={200} intensity={0.6}>
+            <CertificateCard
+              courseName={course.title}
+              userName="Student"
+              completedDate={new Date().toISOString()}
+              certificateNumber={`LF-DEMO-${String(course.id ?? courseId).slice(-6).toUpperCase()}`}
+              download={handleDownloadCertificate}
+            />
+          </HoverGlow>
+        </motion.section>
       ) : null}
     </LearningLayout>
   );
