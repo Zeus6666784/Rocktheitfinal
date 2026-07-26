@@ -21,6 +21,8 @@ import { env } from '../config/env.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // server/data/videos/ - outside the publicly served /uploads path.
+// server/data lives next to server/src, so go up one level from
+// __dirname (which is .../server/src) and into ./data.
 const DATA_DIR = path.resolve(__dirname, '../../data');
 const VIDEOS_DIR = path.join(DATA_DIR, 'videos');
 
