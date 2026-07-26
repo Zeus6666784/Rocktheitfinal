@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { BookOpen } from 'lucide-react';
 import CourseBanner from '../../components/course/CourseBanner/CourseBanner';
 import PlaylistItem from '../../components/common/PlaylistItem/PlaylistItem';
 import InstructorCard from '../../components/common/InstructorCard/InstructorCard';
+import EnrollButton from '../../components/course/EnrollButton/EnrollButton';
 import Loader from '../../components/common/Loader/Loader';
 import ErrorState from '../../components/common/ErrorState/ErrorState';
 import { getCourse } from '../../services/courses';
 
 export default function CourseDetail() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [state, setState] = useState({ loading: true, error: null, course: null });
 
   useEffect(() => {
@@ -45,9 +45,12 @@ export default function CourseDetail() {
   }
 
   const course = state.course;
-  const lectures = course.lectures || [];
+  const lectures = course.lectures ?? [];
   const instructor = course.instructor;
-  const isStarted = (course.progress ?? 0) > 0;
+  const totalSeconds = typeof course.duration === 'number' ? course.duration : null;
+  const totalDurationLabel = totalSeconds
+    ? `${Math.floor(totalSeconds / 3600)}h ${Math.floor((totalSeconds % 3600) / 60)}m`
+    : course.duration;
   const isComplete = (course.progress ?? 0) >= 90;
 
   return (
@@ -58,11 +61,10 @@ export default function CourseDetail() {
           description={course.description}
           coverImage={course.coverImage || course.thumbnail}
           rating={course.rating}
-          duration={course.duration}
+          duration={totalDurationLabel}
           students={course.students}
           lectures={lectures.length}
-          enrolled={isStarted}
-          onEnroll={() => navigate(`/learn/${course.id}`)}
+          enrolled={Boolean(course.enrolled) || (course.progress ?? 0) > 0}
         />
       </section>
 
@@ -74,27 +76,22 @@ export default function CourseDetail() {
               Playlist
             </h2>
             <span className="text-small text-ink-muted">
-              {lectures.length} lectures - {course.duration}
+              {lectures.length} lectures - {totalDurationLabel}
             </span>
           </header>
           <ol className="rounded-card bg-surface border border-line overflow-hidden">
-            {lectures.map((lecture, idx) => {
-              const completed = isComplete;
-              const locked = idx > 0 && !isStarted;
-              const active = !completed && idx === 0;
-              return (
-                <li key={lecture._id || lecture.id}>
-                  <PlaylistItem
-                    title={lecture.title}
-                    duration={lecture.duration}
-                    lectureNumber={lecture.order || idx + 1}
-                    completed={completed}
-                    locked={locked}
-                    active={active}
-                  />
-                </li>
-              );
-            })}
+            {lectures.map((lecture, idx) => (
+              <li key={lecture.id ?? lecture._id}>
+                <PlaylistItem
+                  lectureNumber={lecture.order ?? idx + 1}
+                  title={lecture.title}
+                  duration={formatDuration(lecture.duration)}
+                  completed={Boolean(lecture.completed)}
+                  locked={Boolean(lecture.locked)}
+                  active={Boolean(lecture.active)}
+                />
+              </li>
+            ))}
           </ol>
         </div>
 
@@ -122,8 +119,24 @@ export default function CourseDetail() {
               <li>- Companion slides and starter code</li>
             </ul>
           </section>
+
+          <section className="rounded-card bg-surface border border-line p-5">
+            <EnrollButton courseId={course.id ?? id} courseTitle={course.title} />
+            {isComplete ? (
+              <p className="mt-3 text-small text-success">You've completed this course.</p>
+            ) : null}
+          </section>
         </aside>
       </section>
     </div>
   );
+}
+
+function formatDuration(value) {
+  if (typeof value === 'number') {
+    const m = Math.floor(value / 60);
+    const s = value % 60;
+    return `${m}:${String(s).padStart(2, '0')}`;
+  }
+  return value ?? '';
 }
