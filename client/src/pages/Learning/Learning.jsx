@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { FileText, Download, Award, Sparkles } from 'lucide-react';
+import jsPDF from 'jspdf';
 import LearningLayout from '../../components/learning/LearningLayout/LearningLayout';
 import VideoPlayer from '../../components/learning/VideoPlayer/VideoPlayer';
 import ProgressBar from '../../components/learning/ProgressBar/ProgressBar';
@@ -34,6 +35,63 @@ function writeLocalProgress(courseId, data) {
   } catch {
     // Storage may be unavailable (private mode, quota); ignore.
   }
+}
+
+// ponytail: in-browser PDF so the demo can hand the learner a real file
+// without needing the auth-gated /api/certificate/:courseId endpoint.
+function generateCertificatePdf({ courseName, userName, completedDate, certificateNumber }) {
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  const w = doc.internal.pageSize.getWidth();
+  const h = doc.internal.pageSize.getHeight();
+  doc.setDrawColor(124, 92, 252);
+  doc.setLineWidth(3);
+  doc.rect(20, 20, w - 40, h - 40);
+  doc.setLineWidth(1);
+  doc.rect(30, 30, w - 60, h - 60);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(36);
+  doc.setTextColor(124, 92, 252);
+  doc.text('Learnify', w / 2, 100, { align: 'center' });
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(16);
+  doc.setTextColor(70, 70, 70);
+  doc.text('Certificate of Completion', w / 2, 130, { align: 'center' });
+
+  doc.setFontSize(12);
+  doc.setTextColor(90, 90, 90);
+  doc.text('This certifies that', w / 2, 180, { align: 'center' });
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(28);
+  doc.setTextColor(20, 20, 20);
+  doc.text(userName || 'Student', w / 2, 215, { align: 'center' });
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(12);
+  doc.setTextColor(90, 90, 90);
+  doc.text('has successfully completed', w / 2, 245, { align: 'center' });
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(20);
+  doc.setTextColor(124, 92, 252);
+  doc.text(courseName || 'Course', w / 2, 280, { align: 'center' });
+
+  const dateStr = completedDate
+    ? new Date(completedDate).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
+    : new Date().toLocaleDateString();
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  doc.setTextColor(90, 90, 90);
+  doc.text(`Issued on ${dateStr}`, w / 2, h - 70, { align: 'center' });
+
+  doc.setFontSize(9);
+  doc.setTextColor(140, 140, 140);
+  doc.text(`Certificate ID: ${certificateNumber}`, w / 2, h - 55, { align: 'center' });
+
+  return doc;
 }
 
 function aggregateWatchPercentage(perLecture) {
@@ -184,6 +242,19 @@ export default function Learning() {
   const resources = currentLecture?.resources ?? [];
   const certificateEligible = watchPercentage >= 90;
 
+  // ponytail: demo certificate is generated in-browser; no auth required.
+  const handleDownloadCertificate = () => {
+    const completedDate = new Date().toISOString();
+    const certificateNumber = `LF-DEMO-${String(course.id ?? courseId).slice(-6).toUpperCase()}`;
+    const doc = generateCertificatePdf({
+      courseName: course.title,
+      userName: 'Student',
+      completedDate,
+      certificateNumber,
+    });
+    doc.save(`${certificateNumber}.pdf`);
+  };
+
   return (
     <LearningLayout
       video={
@@ -283,6 +354,7 @@ export default function Learning() {
             userName="Student"
             completedDate={new Date().toISOString()}
             certificateNumber={`LF-DEMO-${String(course.id ?? courseId).slice(-6).toUpperCase()}`}
+            download={handleDownloadCertificate}
           />
         </section>
       ) : null}
