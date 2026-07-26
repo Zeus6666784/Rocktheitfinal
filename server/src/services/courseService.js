@@ -97,6 +97,10 @@ export async function getCourse(idOrSlug, { userId } = {}) {
     return {
       id: String(lec._id),
       title: lec.title,
+      // ponytail: demo exposes videoUrl here so the unauthenticated
+      // Learning page can play without the auth-gated lecture endpoint.
+      // Auth builds the contract-faithful call to /api/lectures/:id.
+      videoUrl: lec.videoUrl,
       duration: lec.duration,
       order: lec.order,
       locked,

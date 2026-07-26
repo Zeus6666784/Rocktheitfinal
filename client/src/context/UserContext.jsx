@@ -1,21 +1,23 @@
-import { createContext, useContext, useMemo, useState } from 'react';
+import { createContext, useContext, useMemo, useState, useCallback } from 'react';
 
 /**
- * User context. Stub for now - real auth is Dev 2's.
- * Shape mirrors docs/DATABASE.md users collection.
+ * UserContext (demo).
+ * No auth — the demo runs anonymously. The shape matches what the rest
+ * of the app expects so swapping in real auth later is a one-place change.
  */
 const UserContext = createContext({
   user: null,
   setUser: () => {},
-  isAuthenticated: false,
+  signOut: () => {},
 });
 
 export function UserProvider({ children }) {
   const [user, setUser] = useState(null);
-  const value = useMemo(
-    () => ({ user, setUser, isAuthenticated: Boolean(user) }),
-    [user],
-  );
+
+  const signOut = useCallback(() => setUser(null), []);
+
+  const value = useMemo(() => ({ user, setUser, signOut }), [user, signOut]);
+
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 }
 

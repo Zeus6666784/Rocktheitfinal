@@ -10,48 +10,61 @@ import ChapterList from '../../components/learning/ChapterList/ChapterList';
 import LectureNavigator from '../../components/learning/LectureNavigator/LectureNavigator';
 import Loader from '../../components/common/Loader/Loader';
 import ErrorState from '../../components/common/ErrorState/ErrorState';
-import { useAuth } from '../../context/AuthContext';
 import { getCourse } from '../../services/courses';
-import { getLecture } from '../../services/lectures';
-import { getProgress, updateProgress } from '../../services/progress';
-import { getCertificate } from '../../services/certificate';
 
-function formatDuration(seconds) {
-  if (typeof seconds !== 'number') return seconds;
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${String(s).padStart(2, '0')}`;
+// ponytail: localStorage progress keeps the demo self-contained — no auth
+// required, progress survives a refresh. Keyed per course.
+const PROGRESS_KEY = (courseId) => `learnify.progress.${courseId}`;
+
+function readLocalProgress(courseId) {
+  try {
+    const raw = localStorage.getItem(PROGRESS_KEY(courseId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeLocalProgress(courseId, data) {
+  try {
+    localStorage.setItem(PROGRESS_KEY(courseId), JSON.stringify(data));
+  } catch {
+    // Storage may be unavailable (private mode, quota); ignore.
+  }
+}
+
+function aggregateWatchPercentage(perLecture) {
+  const values = Object.values(perLecture || {});
+  if (!values.length) return 0;
+  const sum = values.reduce((acc, n) => acc + Number(n || 0), 0);
+  return Math.round(sum / values.length);
 }
 
 /**
- * Learning page.
- * - fetches the course (with lectures + their locked flags) from the server
- * - tracks which lecture is currently selected
- * - real lecture gating: clicking a locked lecture is a no-op (server will also reject)
- * - progress updates on every video tick (debounced at the hook)
- * - certificate unlocks when server progress >= 90
+ * Learning page (demo).
+ * - Fetches the course from the server (anonymous).
+ * - Tracks the selected lecture; respects the server's locked flags.
+ * - Persists per-lecture watch percentage to localStorage so the demo
+ *   keeps state across reloads without needing auth.
+ * - Certificate card unlocks once average watchPercentage >= 90.
  */
 export default function Learning() {
   const { courseId } = useParams();
-  const { isAuthenticated } = useAuth();
 
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [progressState, setProgressState] = useState({
-    completedLectures: [],
-    watchPercentage: 0,
-    totalLectures: 0,
-  });
+  const [perLecture, setPerLecture] = useState({});
   const [currentLectureId, setCurrentLectureId] = useState(null);
-  const [certificate, setCertificate] = useState(null);
 
   useEffect(() => {
     let alive = true;
     setLoading(true);
     setError(null);
     setCourse(null);
-    setProgressState({ completedLectures: [], watchPercentage: 0, totalLectures: 0 });
     setCurrentLectureId(null);
 
     (async () => {
@@ -73,33 +86,24 @@ export default function Learning() {
     };
   }, [courseId]);
 
-  // Load existing progress (if authenticated) so we render the right state.
   useEffect(() => {
-    if (!isAuthenticated || !courseId) return undefined;
-    let alive = true;
-    getProgress(courseId)
-      .then((data) => {
-        if (!alive) return;
-        if (data?.progress) {
-          setProgressState({
-            completedLectures: data.completedLectures ?? [],
-            watchPercentage: data.watchPercentage ?? 0,
-            totalLectures: data.totalLectures ?? course?.lectures?.length ?? 0,
-          });
-        }
-      })
-      .catch(() => {
-        // 404 is fine - no progress yet.
-      });
-    return () => {
-      alive = false;
-    };
-  }, [courseId, isAuthenticated, course?.lectures?.length]);
+    if (!courseId || !course) return;
+    const saved = readLocalProgress(courseId);
+    if (saved?.perLecture) setPerLecture(saved.perLecture);
+  }, [courseId, course]);
 
-  const completedSet = useMemo(
-    () => new Set(progressState.completedLectures),
-    [progressState.completedLectures],
+  const watchPercentage = useMemo(
+    () => aggregateWatchPercentage(perLecture),
+    [perLecture],
   );
+
+  const completedSet = useMemo(() => {
+    const set = new Set();
+    for (const [id, pct] of Object.entries(perLecture)) {
+      if (pct >= 90) set.add(id);
+    }
+    return set;
+  }, [perLecture]);
 
   const completedMap = useMemo(() => {
     const map = {};
@@ -135,59 +139,27 @@ export default function Learning() {
   }, [previousLecture]);
 
   const handleProgress = useCallback(
-    async (playedFraction) => {
-      if (!currentLecture || !isAuthenticated) return;
+    (playedFraction) => {
+      if (!currentLecture) return;
       const pct = Math.round(playedFraction * 100);
-      const completed = pct >= 90;
-      try {
-        const data = await updateProgress({
-          courseId,
-          lectureId: currentLecture.id,
-          watchPercentage: pct,
-          completed,
-        });
-        if (data) {
-          setProgressState({
-            completedLectures: data.completedLectures ?? [],
-            watchPercentage: data.watchPercentage ?? 0,
-            totalLectures: data.totalLectures ?? orderedLectures.length,
-          });
-          if (completed && nextLecture && !nextLecture.locked) {
-            // Auto-advance after completion.
-            setCurrentLectureId(nextLecture.id);
-          }
-        }
-      } catch {
-        // Soft fail: keep the UI responsive. Server will reconcile on next tick.
+      setPerLecture((prev) => {
+        const existing = prev[currentLecture.id] ?? 0;
+        const next = { ...prev, [currentLecture.id]: Math.max(existing, pct) };
+        const overall = aggregateWatchPercentage(next);
+        writeLocalProgress(courseId, { perLecture: next, watchPercentage: overall });
+        return next;
+      });
+      if (pct >= 90 && nextLecture && !nextLecture.locked) {
+        setCurrentLectureId(nextLecture.id);
       }
     },
-    [currentLecture, courseId, isAuthenticated, nextLecture, orderedLectures.length],
+    [currentLecture, nextLecture, courseId],
   );
 
   const handleComplete = useCallback(() => {
     if (!currentLecture) return;
     handleProgress(1);
   }, [currentLecture, handleProgress]);
-
-  // Unlock certificate when threshold hits.
-  useEffect(() => {
-    if (!isAuthenticated || !courseId) return undefined;
-    if (progressState.watchPercentage < 90) {
-      setCertificate(null);
-      return undefined;
-    }
-    let alive = true;
-    getCertificate(courseId)
-      .then((data) => {
-        if (alive) setCertificate(data);
-      })
-      .catch(() => {
-        if (alive) setCertificate(null);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [courseId, isAuthenticated, progressState.watchPercentage]);
 
   if (loading) {
     return (
@@ -210,6 +182,7 @@ export default function Learning() {
   }
 
   const resources = currentLecture?.resources ?? [];
+  const certificateEligible = watchPercentage >= 90;
 
   return (
     <LearningLayout
@@ -243,14 +216,14 @@ export default function Learning() {
               <h2 className="font-heading text-h3 text-ink mt-1">{course.title}</h2>
             </div>
             <div className="text-right">
-              <p className="font-heading text-h2 text-primary">{progressState.watchPercentage}%</p>
+              <p className="font-heading text-h2 text-primary">{watchPercentage}%</p>
               <p className="text-small text-ink-muted">
                 {completedSet.size} of {orderedLectures.length} lectures
               </p>
             </div>
           </div>
           <div className="mt-4">
-            <ProgressBar progress={progressState.watchPercentage} label="Course progress" />
+            <ProgressBar progress={watchPercentage} label="Course progress" />
           </div>
         </section>
       }
@@ -287,10 +260,10 @@ export default function Learning() {
             currentLectureId={currentLectureId}
             onSelect={handleSelect}
           />
-          {progressState.watchPercentage >= 90 ? (
+          {certificateEligible ? (
             <div className="mt-4 px-2">
-              <a href="#certificate">
-                <Award className="inline h-4 w-4 mr-1 text-primary" aria-hidden="true" />
+              <a href="#certificate" className="inline-flex items-center text-small text-primary hover:underline">
+                <Award className="h-4 w-4 mr-1" aria-hidden="true" />
                 View Certificate
               </a>
             </div>
@@ -303,13 +276,13 @@ export default function Learning() {
         </section>
       }
     >
-      {progressState.watchPercentage >= 90 && certificate ? (
+      {certificateEligible ? (
         <section id="certificate">
           <CertificateCard
             courseName={course.title}
-            userName={certificate.userName}
-            completedDate={certificate.completedDate}
-            certificateNumber={certificate.certificateNumber}
+            userName="Student"
+            completedDate={new Date().toISOString()}
+            certificateNumber={`LF-DEMO-${String(course.id ?? courseId).slice(-6).toUpperCase()}`}
           />
         </section>
       ) : null}

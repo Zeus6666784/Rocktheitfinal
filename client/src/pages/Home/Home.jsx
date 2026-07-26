@@ -1,19 +1,26 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import HeroSection from '../../components/home/HeroSection/HeroSection';
 import CourseCard from '../../components/common/CourseCard/CourseCard';
 import Loader from '../../components/common/Loader/Loader';
-import ErrorState from '../../components/common/ErrorState/ErrorState';
 import { listCourses } from '../../services/courses';
 
+/**
+ * Home (demo).
+ * Hero + a small "Featured courses" grid sourced from the same
+ * catalogue endpoint the Browse page uses. Anonymous — no auth.
+ */
 export default function Home() {
-  const [state, setState] = useState({ loading: true, error: null, items: [] });
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let alive = true;
-    listCourses({ limit: 6, sort: 'rating' })
-      .then((data) => alive && setState({ loading: false, error: null, items: data?.items ?? [] }))
-      .catch((err) => alive && setState({ loading: false, error: err, items: [] }));
+    listCourses({ limit: 6, sort: 'popular' })
+      .then((data) => alive && setItems(data.items ?? []))
+      .catch(() => alive && setItems([]))
+      .finally(() => alive && setLoading(false));
     return () => {
       alive = false;
     };
@@ -21,39 +28,45 @@ export default function Home() {
 
   return (
     <>
-      <HeroSection />
+      <HeroSection
+        title="A modern learning experience built for focus."
+        subtitle="Premium courses, distraction-free lessons, and a learning path that adapts to you."
+        primaryLabel="Browse Courses"
+        primaryAction={() => (window.location.href = '/courses')}
+        secondaryLabel="Try a Lesson"
+        secondaryAction={() => (window.location.href = '/courses/demo')}
+      />
 
-      <section className="container-shell py-section-mobile lg:py-section">
-        <header className="flex items-end justify-between gap-4 mb-8 flex-wrap">
+      <section className="container-shell pb-section-mobile lg:pb-section space-y-8">
+        <header className="flex items-end justify-between gap-4">
           <div>
             <p className="text-caption uppercase tracking-widest text-ink-muted">
-              Top rated
+              Featured
             </p>
             <h2 className="font-heading text-h2 text-ink mt-1">
-              Featured courses
+              Popular this week
             </h2>
           </div>
           <Link
             to="/courses"
             className="text-small font-medium text-primary hover:underline"
           >
-            Browse all courses
+            See all
           </Link>
         </header>
 
-        {state.loading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader size="large" label="Loading featured courses" />
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader size="large" label="Loading courses" />
           </div>
-        ) : state.error ? (
-          <ErrorState
-            title="Could not load courses"
-            description="The mock backend isn't responding. Restart the dev server if this persists."
-            retry={() => window.location.reload()}
-          />
         ) : (
-          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            {state.items.map((c) => (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+          >
+            {items.map((c) => (
               <Link key={c.id} to={`/courses/${c.id}`} className="block">
                 <CourseCard
                   thumbnail={c.thumbnail}
@@ -67,7 +80,7 @@ export default function Home() {
                 />
               </Link>
             ))}
-          </div>
+          </motion.div>
         )}
       </section>
     </>

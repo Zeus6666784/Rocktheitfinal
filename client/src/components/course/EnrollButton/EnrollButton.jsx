@@ -1,95 +1,65 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, GraduationCap, LogIn } from 'lucide-react';
+import { Play, Sparkles, CheckCircle2 } from 'lucide-react';
 import PrimaryButton from '../../common/PrimaryButton/PrimaryButton';
 import ClickSpark from '../../common/ClickSpark/ClickSpark';
-import { useAuth } from '../../../context/AuthContext';
 
 /**
- * EnrollButton (Dev 2 - plan §6)
- * Single CTA for enrolling in a course.
- *
- * Behaviour:
- * - Not authenticated → redirects to /login with a `next` query param.
- * - Already enrolled → renders a "Continue learning" link to the learning page.
- * - Otherwise calls POST /api/courses/:id/enroll then navigates to the learning page.
- *
- * Wrapped in ClickSpark so each click on the primary CTA emits a brief
- * spark burst — visual feedback that the call is dispatching.
+ * EnrollButton (demo).
+ * No auth — clicking "Enroll" just navigates to the learning page.
+ * Wrapped in ClickSpark per the handoff: sparks radiate on click.
+ * Reads progress from localStorage to switch labels.
  */
-export default function EnrollButton({ courseId, courseTitle = 'this course' }) {
+const PROGRESS_KEY = (courseId) => `learnify.progress.${courseId}`;
+
+function readProgress(courseId) {
+  try {
+    const raw = localStorage.getItem(PROGRESS_KEY(courseId));
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+export default function EnrollButton({ courseId, courseTitle }) {
   const navigate = useNavigate();
-  const { isAuthenticated, user } = useAuth();
-  const [pending, setPending] = useState(false);
-  const [enrolled, setEnrolled] = useState(false);
-  const [error, setError] = useState(null);
+  const [enrolled, setEnrolled] = useState(() => Boolean(readProgress(courseId)?.perLecture));
+  const [busy, setBusy] = useState(false);
 
-  async function handleEnroll() {
-    setError(null);
+  const handleClick = () => {
+    setBusy(true);
+    // demo: enrollment is implicit the moment the user starts learning
+    setEnrolled(true);
+    navigate(`/learn/${courseId}`);
+  };
 
-    if (!isAuthenticated) {
-      const next = encodeURIComponent(`/courses/${courseId}`);
-      navigate(`/login?next=${next}`);
-      return;
-    }
-
-    setPending(true);
-    try {
-      const token = localStorage.getItem('learnify.token');
-      const res = await fetch(`/api/courses/${courseId}/enroll`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok || !payload.success) {
-        throw new Error(payload?.error?.message || 'Could not enroll. Please try again.');
-      }
-      setEnrolled(true);
-      navigate(`/learn/${courseId}`);
-    } catch (err) {
-      setError(err.message || 'Could not enroll');
-    } finally {
-      setPending(false);
-    }
-  }
-
-  if (enrolled) {
-    return (
-      <PrimaryButton
-        label="Continue learning"
-        variant="primary"
-        icon={GraduationCap}
-        onClick={() => navigate(`/learn/${courseId}`)}
-      />
-    );
-  }
+  const label = enrolled ? 'Continue learning' : 'Enroll now';
+  const Icon = enrolled ? Play : Sparkles;
 
   return (
-    <div className="flex flex-col items-start gap-2">
-      <ClickSpark
-        sparkColor="#a78bfa"
-        sparkSize={10}
-        sparkRadius={18}
-        sparkCount={8}
-        duration={420}
-        className="rounded-btn"
-      >
-        <PrimaryButton
-          label={isAuthenticated ? `Enroll in ${user?.name ? courseTitle : 'course'}` : 'Sign in to enroll'}
-          variant="primary"
-          icon={isAuthenticated ? CheckCircle2 : LogIn}
-          onClick={handleEnroll}
-          loading={pending}
-        />
-      </ClickSpark>
-      {error ? (
-        <p role="alert" className="text-small text-danger">
-          {error}
+    <ClickSpark
+      sparkColor="#7C5CFC"
+      sparkSize={8}
+      sparkRadius={18}
+      sparkCount={8}
+      duration={420}
+      className="w-full"
+    >
+      <PrimaryButton
+        label={label}
+        variant="primary"
+        icon={Icon}
+        loading={busy}
+        onClick={handleClick}
+        className="w-full"
+      />
+      {enrolled ? (
+        <p className="mt-2 inline-flex items-center gap-1 text-small text-success">
+          <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+          You're enrolled in {courseTitle || 'this course'}
         </p>
       ) : null}
-    </div>
+    </ClickSpark>
   );
 }
