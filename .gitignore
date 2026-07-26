@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build / dist
+dist/
+build/
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Claude worktrees (ephemeral dev sandboxes, not project content)
+.claude/worktrees/
+
+# Server uploads (seeded at runtime)
+server/uploads/resources/*
+!server/uploads/resources/.gitkeep
+
+# Logs
+*.log
+npm-debug.log*
