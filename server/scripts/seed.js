@@ -8,7 +8,7 @@
  */
 import 'dotenv/config';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import mongoose from 'mongoose';
 import Course from '../src/models/Course.js';
 import Lecture from '../src/models/Lecture.js';
@@ -17,7 +17,7 @@ import User from '../src/models/User.js';
 // Catalog is ESM in the client. Resolve relative to repo root so the path is stable.
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const catalogPath = path.resolve(__dirname, '../../client/src/mocks/catalog.js');
-const { INSTRUCTORS, COURSES } = await import(catalogPath);
+const { INSTRUCTORS, COURSES } = await import(pathToFileURL(catalogPath).href);
 
 const SAMPLE_VIDEO = 'https://www.youtube.com/watch?v=Ke90Tje7VS0';
 
