@@ -6,7 +6,7 @@ package-lock.json
 dist/
 build/
 
-# Env
+# Env (never commit secrets)
 .env
 .env.local
 .env.*.local
@@ -20,16 +20,22 @@ Thumbs.db
 # Claude worktrees (ephemeral dev sandboxes, not project content)
 .claude/worktrees/
 
-# Server uploads (seeded at runtime)
-server/uploads/resources/*
-!server/uploads/resources/.gitkeep
+# Server runtime data: placeholders committed, everything else ignored.
+# server/data/videos/ is the canonical (token-gated) storage location.
+# Anything that's NOT one of the four placeholder filenames is uploaded
+# at runtime and is therefore not for the repo.
+server/data/videos/*
+!server/data/videos/demo.mp4
+!server/data/videos/react-usestate.mp4
+!server/data/videos/react-useeffect.mp4
+!server/data/videos/deep-work.mp4
+!server/data/videos/INSTRUCTIONS.md
 
-# Server videos: placeholder MP4s are committed; user-uploaded ones are ignored.
-server/uploads/videos/*.mp4
-!server/uploads/videos/demo.mp4
-!server/uploads/videos/react-usestate.mp4
-!server/uploads/videos/react-useeffect.mp4
-!server/uploads/videos/deep-work.mp4
+# Legacy uploads folder - was publicly served, no longer used.
+server/uploads/
+
+# PowerShell helper scripts (sandbox-only)
+*.ps1
 
 # Logs
 *.log

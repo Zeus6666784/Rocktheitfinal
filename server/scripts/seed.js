@@ -19,14 +19,14 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const catalogPath = path.resolve(__dirname, '../../client/src/mocks/catalog.js');
 const { INSTRUCTORS, COURSES } = await import(pathToFileURL(catalogPath).href);
 
-// Lecture videos live under /uploads/videos/ (served by Express static).
-// Files drop into server/uploads/videos/ — see INSTRUCTIONS.md there for
-// the mapping + yt-dlp commands. The catalog (client/src/mocks/catalog.js)
-// is the source of truth; the seed copies those videoUrls into Mongo.
-const VIDEO_DEFAULT = '/uploads/videos/demo.mp4';
-const VIDEO_REACT_USESTATE = '/uploads/videos/react-usestate.mp4';
-const VIDEO_REACT_USEEFFECT = '/uploads/videos/react-useeffect.mp4';
-const VIDEO_DEEP_WORK = '/uploads/videos/deep-work.mp4';
+// Lecture videos live in server/data/videos/ (NOT publicly served).
+// Files drop there — see INSTRUCTIONS.md in that folder for the mapping
+// + yt-dlp commands. The catalog (client/src/mocks/catalog.js) is the
+// source of truth; the seed copies those videoUrls into Mongo.
+const VIDEO_DEFAULT = '/api/videos/demo.mp4';
+const VIDEO_REACT_USESTATE = '/api/videos/react-usestate.mp4';
+const VIDEO_REACT_USEEFFECT = '/api/videos/react-useeffect.mp4';
+const VIDEO_DEEP_WORK = '/api/videos/deep-work.mp4';
 
 const COURSE_VIDEOS = {
   demo: [VIDEO_REACT_USESTATE, VIDEO_REACT_USESTATE, VIDEO_REACT_USESTATE, VIDEO_REACT_USEEFFECT, VIDEO_REACT_USEEFFECT],
