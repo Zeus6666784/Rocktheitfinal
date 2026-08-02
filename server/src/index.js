@@ -83,12 +83,23 @@ export async function createApp() {
 
 const isMain = import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}`;
 if (isMain) {
-  connectDb()
-    .then(() => createApp())
-    .then((app) => app.listen(env.port, () => console.log(`[server] listening on :${env.port}`)))
-    .catch((err) => {
-      // eslint-disable-next-line no-console
-      console.error('[server] boot failed', err);
-      process.exit(1);
+  try {
+    const app = await createApp();
+
+    app.listen(env.port, '0.0.0.0', () => {
+      console.log(`[server] listening on :${env.port}`);
     });
+
+    // Connect to MongoDB after HTTP server starts
+    connectDb()
+      .then(() => {
+        console.log('[server] MongoDB connected');
+      })
+      .catch((err) => {
+        console.error('[server] MongoDB connection failed:', err);
+      });
+  } catch (err) {
+    console.error('[server] boot failed:', err);
+    process.exit(1);
+  }
 }
