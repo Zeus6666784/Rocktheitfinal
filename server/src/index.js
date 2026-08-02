@@ -80,7 +80,7 @@ export async function createApp() {
   return app;
 }
 
-// Boot when run directly (not on import).
+
 const isMain = import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}`;
 if (isMain) {
   connectDb()
