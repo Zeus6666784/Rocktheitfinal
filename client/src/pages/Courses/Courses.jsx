@@ -39,7 +39,7 @@ export default function Courses() {
   }, [submittedQuery, category, sort, page]);
 
   const items = state.data?.items ?? [];
-  const totalPages = state.data?.totalPages ?? 1;
+  const totalPages = state.data ? Math.ceil(state.data.total / state.data.limit) : 1;
 
   const handleSubmit = (value) => {
     setSubmittedQuery(value);
