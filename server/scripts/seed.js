@@ -20,13 +20,14 @@ const catalogPath = path.resolve(__dirname, '../../client/src/mocks/catalog.js')
 const { INSTRUCTORS, COURSES } = await import(pathToFileURL(catalogPath).href);
 
 // Lecture videos live in server/data/videos/ (NOT publicly served).
-// Files drop there — see INSTRUCTIONS.md in that folder for the mapping
-// + yt-dlp commands. The catalog (client/src/mocks/catalog.js) is the
-// source of truth; the seed copies those videoUrls into Mongo.
-const VIDEO_DEFAULT = '/api/videos/demo.mp4';
-const VIDEO_REACT_USESTATE = '/api/videos/react-usestate.mp4';
-const VIDEO_REACT_USEEFFECT = '/api/videos/react-useeffect.mp4';
-const VIDEO_DEEP_WORK = '/api/videos/deep-work.mp4';
+// The catalog (client/src/mocks/catalog.js) is the source of truth; the
+// seed copies those videoUrls into Mongo. The public demo route is
+// /api/videos-public/:filename (anonymous, no admin token) so the SPA
+// <video> element can play without sending X-Admin-Key.
+const VIDEO_DEFAULT = '/api/videos-public/demo.mp4';
+const VIDEO_REACT_USESTATE = '/api/videos-public/react-usestate.mp4';
+const VIDEO_REACT_USEEFFECT = '/api/videos-public/react-useeffect.mp4';
+const VIDEO_DEEP_WORK = '/api/videos-public/deep-work.mp4';
 
 const COURSE_VIDEOS = {
   demo: [VIDEO_REACT_USESTATE, VIDEO_REACT_USESTATE, VIDEO_REACT_USESTATE, VIDEO_REACT_USEEFFECT, VIDEO_REACT_USEEFFECT],
@@ -35,6 +36,10 @@ const COURSE_VIDEOS = {
   data: VIDEO_DEFAULT,
   writing: VIDEO_DEFAULT,
   ml: VIDEO_DEFAULT,
+  // ponytail: data-viz uses the YouTube URL directly (Practical 1 — Tableau
+  // Basics & Dashboard). The SPA's <VideoPlayer> detects youtube.com/youtu.be
+  // and routes through react-player, so the URL is stored as-is.
+  'data-viz': 'https://youtu.be/R-c286YGwF0',
 };
 
 function videoUrlFor(courseId, index) {

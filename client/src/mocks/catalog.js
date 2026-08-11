@@ -22,6 +22,8 @@ const SAMPLE_THUMBNAIL_WRITING =
   'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=1280&q=70';
 const SAMPLE_THUMBNAIL_ML =
   'https://images.unsplash.com/photo-1555949963-aa79dcee981c?auto=format&fit=crop&w=1280&q=70';
+const SAMPLE_THUMBNAIL_DATA_VIZ =
+  'https://images.unsplash.com/photo-1543286386-713bdd548da4?auto=format&fit=crop&w=1280&q=70';
 
 const SAMPLE_AVATAR_SARA = 'https://i.pravatar.cc/160?img=47';
 const SAMPLE_AVATAR_RAHUL = 'https://i.pravatar.cc/160?img=12';
@@ -29,6 +31,7 @@ const SAMPLE_AVATAR_MIRA = 'https://i.pravatar.cc/160?img=32';
 const SAMPLE_AVATAR_DANIEL = 'https://i.pravatar.cc/160?img=8';
 const SAMPLE_AVATAR_ANITA = 'https://i.pravatar.cc/160?img=49';
 const SAMPLE_AVATAR_KAI = 'https://i.pravatar.cc/160?img=15';
+const SAMPLE_AVATAR_MAHENDRA = 'https://i.pravatar.cc/160?img=68';
 
 export const INSTRUCTORS = [
   {
@@ -85,6 +88,15 @@ export const INSTRUCTORS = [
     courses: 4,
     students: 7600,
   },
+  {
+    id: 'i7',
+    name: 'Mr. Sumit Tripathi',
+    avatar: SAMPLE_AVATAR_MAHENDRA,
+    bio: 'Experienced educator in data visualization and business intelligence tools like Power BI and Tableau.',
+    rating: 4.8,
+    courses: 1,
+    students: 1200,
+  },
 ];
 
 // Lecture videos live under server/data/videos/ (served by Express via
@@ -119,7 +131,7 @@ function makeLectures(courseId, titles, videoUrls) {
         id: `${courseId}-r${idx + 1}`,
         title: `${t.title} - slides`,
         description: 'PDF companion for this lecture',
-        fileUrl: '#',
+        fileUrl: '/uploads/resources/Lesson-01.pdf',
         type: 'pdf',
       },
     ],
@@ -274,6 +286,26 @@ export const COURSES = [
       { title: 'From linear to deep', duration: '22:18' },
       { title: 'Evaluating honestly', duration: '16:00' },
       { title: 'Shipping ML features', duration: '19:45' },
+    ]),
+  },
+  {
+    _id: 'data-viz',
+    title: 'Data Visualization with Power BI and Tableau',
+    slug: 'data-visualization-with-power-bi-and-tableau',
+    description:
+      'Data Visualization with Power BI and Tableau is the process of transforming raw data into interactive charts, graphs, dashboards, and reports using business intelligence tools like Power BI and Tableau. These tools help users analyze data, identify trends and patterns, monitor key performance indicators (KPIs), and make informed business decisions. By presenting complex data in a visual and easy-to-understand format, they enable organizations to gain valuable insights and communicate information effectively.',
+    thumbnail: SAMPLE_THUMBNAIL_DATA_VIZ,
+    coverImage: SAMPLE_THUMBNAIL_DATA_VIZ,
+    instructor: INSTRUCTORS[6],
+    category: 'Data',
+    duration: '45:00',
+    rating: 4.8,
+    students: 1200,
+    price: 0,
+    level: 'All levels',
+    createdAt: '2026-08-11',
+    lectures: makeLectures('data-viz', [
+      { title: 'TYBSc IT | Data Visualization with Power BI & Tableau | Practical 1 | Tableau Basics & Dashboard', duration: '45:00' },
     ]),
   },
 ];
