@@ -37,6 +37,11 @@ router.get('/certificate/:courseId', requireAuth, wrap(certificate.detail));
 // the same-domain deployment (Vite + Express on Railway) avoids CORS.
 router.get('/videos/:filename', requireAdmin, admin.streamVideo);
 
+// ponytail: public demo video route. Serves the same files but with
+// no admin check, so the SPA's <video src=...> can play them without
+// sending X-Admin-Key. Demo-only - the filenames are not secret.
+router.get('/videos-public/:filename', wrap(admin.streamVideoPublic));
+
 // Admin surface (3) - all require X-Admin-Key + rate limit.
 router.post('/admin/videos', adminLimiter, requireAdmin, admin.uploadMiddleware, wrap(admin.uploadVideo));
 router.get('/admin/videos', adminLimiter, requireAdmin, wrap(admin.listVideos));

@@ -43,7 +43,7 @@ export default function Home() {
         primaryLabel="Browse Courses"
         primaryAction={navigate('/courses')}
         secondaryLabel="Try a Lesson"
-        secondaryAction={navigate('/courses/demo')}
+        secondaryAction={navigate('/courses/react-foundations')}
         // HeroSection renders PrimaryButtons; wrapping them in
         // MagneticButton would require refactoring HeroSection. Instead
         // we layer animation onto the surrounding card via HoverGlow

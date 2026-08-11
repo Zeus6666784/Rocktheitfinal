@@ -93,7 +93,12 @@ export async function getCourse(idOrSlug, { userId } = {}) {
 
   const lectures = (course.lectures || []).map((lec) => {
     const prev = (course.lectures || []).find((l) => l.order === lec.order - 1);
-    const locked = lec.order > 1 && (!prev || !completedIds.has(String(prev._id)));
+    // ponytail: anonymous demo users see all lectures unlocked so the
+    // walkthrough actually finishes. Authenticated users follow the
+    // per-lecture lock chain driven by completedLectures.
+    const locked = Boolean(userId)
+      ? lec.order > 1 && (!prev || !completedIds.has(String(prev._id)))
+      : false;
     return {
       id: String(lec._id),
       title: lec.title,
@@ -103,6 +108,14 @@ export async function getCourse(idOrSlug, { userId } = {}) {
       videoUrl: lec.videoUrl,
       duration: lec.duration,
       order: lec.order,
+      // ponytail: pass resources through so the Learning page can render
+      // downloads instead of "No resources for this lecture".
+      resources: (lec.resources || []).map((r) => ({
+        id: String(r._id),
+        title: r.title,
+        fileUrl: r.fileUrl,
+        type: r.type,
+      })),
       locked,
     };
   });

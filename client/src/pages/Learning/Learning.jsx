@@ -14,6 +14,8 @@ import HoverGlow from '../../components/common/HoverGlow/HoverGlow';
 import Loader from '../../components/common/Loader/Loader';
 import ErrorState from '../../components/common/ErrorState/ErrorState';
 import { getCourse } from '../../services/courses';
+import { getToken } from '../../services/auth';
+import { updateProgress } from '../../services/progress';
 
 // ponytail: localStorage progress keeps the demo self-contained — no auth
 // required, progress survives a refresh. Keyed per course.
@@ -209,6 +211,19 @@ export default function Learning() {
         writeLocalProgress(courseId, { perLecture: next, watchPercentage: overall });
         return next;
       });
+      // ponytail: when authenticated, mirror progress to the backend so
+      // the user's account actually reflects what they watched. The
+      // server enforces the 90% completion gate for certificates.
+      if (getToken()) {
+        updateProgress({
+          courseId,
+          lectureId: currentLecture.id,
+          watchPercentage: pct,
+          completed: pct >= 90,
+        }).catch(() => {
+          /* ignore - localStorage is the source of truth for the demo */
+        });
+      }
       if (pct >= 90 && nextLecture && !nextLecture.locked) {
         setCurrentLectureId(nextLecture.id);
       }

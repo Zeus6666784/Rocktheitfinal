@@ -3,12 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { Play, Sparkles, CheckCircle2 } from 'lucide-react';
 import PrimaryButton from '../../common/PrimaryButton/PrimaryButton';
 import ClickSpark from '../../common/ClickSpark/ClickSpark';
+import { getToken } from '../../../services/auth';
+import api from '../../../services/api';
 
 /**
- * EnrollButton (demo).
- * No auth — clicking "Enroll" just navigates to the learning page.
- * Wrapped in ClickSpark per the handoff: sparks radiate on click.
- * Reads progress from localStorage to switch labels.
+ * EnrollButton.
+ * - Authenticated: POST /api/courses/:id/enroll, then navigate to Learning.
+ * - Anonymous (no token): relabel as "Start Learning" - the demo does not
+ *   persist enrollment, so the label must be truthful.
+ *   Reads progress from localStorage to switch to "Continue learning" once
+ *   the user has started.
  */
 const PROGRESS_KEY = (courseId) => `learnify.progress.${courseId}`;
 
@@ -26,15 +30,30 @@ export default function EnrollButton({ courseId, courseTitle }) {
   const navigate = useNavigate();
   const [enrolled, setEnrolled] = useState(() => Boolean(readProgress(courseId)?.perLecture));
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const hasToken = Boolean(getToken());
 
-  const handleClick = () => {
+  const handleClick = async () => {
     setBusy(true);
-    // demo: enrollment is implicit the moment the user starts learning
-    setEnrolled(true);
-    navigate(`/learn/${courseId}`);
+    setError(null);
+    try {
+      if (hasToken) {
+        // ponytail: persist enrollment through the real API. Failures
+        // surface a retry message instead of silently navigating.
+        await api.post(`/courses/${courseId}/enroll`);
+      }
+      setEnrolled(true);
+      navigate(`/learn/${courseId}`);
+    } catch (err) {
+      setError(err?.message || 'Could not enroll right now.');
+      setBusy(false);
+    }
   };
 
-  const label = enrolled ? 'Continue learning' : 'Enroll now';
+  // ponytail: anonymous demo never persisted enrollment, so the truthful
+  // label is "Start learning". Once the learner has watched anything the
+  // button switches to "Continue learning" via local progress.
+  const label = enrolled ? 'Continue learning' : hasToken ? 'Enroll now' : 'Start learning';
   const Icon = enrolled ? Play : Sparkles;
 
   return (
@@ -54,7 +73,9 @@ export default function EnrollButton({ courseId, courseTitle }) {
         onClick={handleClick}
         className="w-full"
       />
-      {enrolled ? (
+      {error ? (
+        <p className="mt-2 text-small text-danger">{error}</p>
+      ) : enrolled ? (
         <p className="mt-2 inline-flex items-center gap-1 text-small text-success">
           <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
           You're enrolled in {courseTitle || 'this course'}

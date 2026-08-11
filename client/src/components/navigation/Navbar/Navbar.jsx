@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, Menu, X } from 'lucide-react';
+import { BookOpen, Menu, X, Sun, Moon } from 'lucide-react';
 import { cn } from '../../../utils/cn';
 import SearchBar from '../../common/SearchBar/SearchBar';
+import { useTheme } from '../../../context/ThemeContext';
 
 /**
  * Navbar (Dev 2)
@@ -12,6 +13,7 @@ import SearchBar from '../../common/SearchBar/SearchBar';
  */
 export default function Navbar({ user }) {
   const [open, setOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   const links = [
     { to: '/', label: 'Home' },
@@ -57,6 +59,14 @@ export default function Navbar({ user }) {
         </div>
 
         <div className="hidden md:flex items-center gap-3 shrink-0">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            className="h-10 w-10 rounded-btn bg-surface border border-line text-ink hover:bg-hover flex items-center justify-center transition-colors"
+          >
+            {theme === 'dark' ? <Sun className="h-4 w-4" aria-hidden="true" /> : <Moon className="h-4 w-4" aria-hidden="true" />}
+          </button>
           {user ? (
             <div
               className="h-10 w-10 rounded-full bg-primary/15 text-primary flex items-center justify-center font-heading font-semibold"

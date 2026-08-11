@@ -92,12 +92,12 @@ export async function uploadVideo(req, res) {
     return fail(res, 500, 'RENAME_FAILED', err.message);
   }
 
-  // Returned URL points at the token-gated /api/videos/:filename route,
-  // not the old public /uploads path.
+  // Returned URL points at the public /api/videos-public/:filename route
+  // so the SPA's <video> element can play it without an admin token.
   const filename = path.basename(target);
   return ok(res, {
     filename,
-    fileUrl: `/api/videos/${filename}`,
+    fileUrl: `/api/videos-public/${filename}`,
     sizeBytes: req.file.size,
   });
 }
@@ -119,7 +119,7 @@ export async function listVideos(_req, res) {
     const stat = await fsp.stat(full);
     items.push({
       filename: e.name,
-      fileUrl: `/api/videos/${e.name}`,
+      fileUrl: `/api/videos-public/${e.name}`,
       sizeBytes: stat.size,
       mtime: stat.mtime.toISOString(),
     });
@@ -134,8 +134,8 @@ export async function patchLectureVideo(req, res) {
   if (!videoUrl || typeof videoUrl !== 'string') {
     return fail(res, 400, 'BAD_REQUEST', 'videoUrl is required');
   }
-  if (!videoUrl.startsWith('/api/videos/') && !videoUrl.startsWith('https://')) {
-    return fail(res, 400, 'BAD_REQUEST', 'videoUrl must be /api/videos/... or https://...');
+  if (!videoUrl.startsWith('/api/videos/') && !videoUrl.startsWith('/api/videos-public/') && !videoUrl.startsWith('https://')) {
+    return fail(res, 400, 'BAD_REQUEST', 'videoUrl must be /api/videos/..., /api/videos-public/... or https://...');
   }
 
   const lecture = await Lecture.findByIdAndUpdate(id, { $set: { videoUrl } }, { new: true });
@@ -176,5 +176,22 @@ export function streamVideo(req, res) {
 
   // Stale-busting: 1h cache.
   res.set('Cache-Control', 'private, max-age=3600');
+  res.sendFile(full);
+}
+
+// ponytail: public stream variant for the demo. Same files, no admin
+// check. Demo-only - filenames are not secret; production must swap
+// this for signed URLs or object storage.
+export function streamVideoPublic(req, res) {
+  const filename = req.params.filename || '';
+  if (!/^[A-Za-z0-9._-]{1,120}$/.test(filename)) {
+    return fail(res, 400, 'BAD_REQUEST', 'Invalid filename');
+  }
+  const full = path.join(VIDEOS_DIR, filename);
+  if (!full.startsWith(VIDEOS_DIR + path.sep) && full !== VIDEOS_DIR) {
+    return fail(res, 400, 'BAD_REQUEST', 'Invalid filename');
+  }
+  if (!fs.existsSync(full)) return fail(res, 404, 'NOT_FOUND', 'Video not found');
+  res.set('Cache-Control', 'public, max-age=3600');
   res.sendFile(full);
 }

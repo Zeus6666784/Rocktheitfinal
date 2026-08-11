@@ -17,7 +17,7 @@ const SORT_OPTIONS = [
   { id: 'popular', label: 'Most popular' },
 ];
 
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 12;
 
 export default function Courses() {
   const [query, setQuery] = useState('');
@@ -105,7 +105,7 @@ export default function Courses() {
       ) : state.error ? (
         <ErrorState
           title="Could not load courses"
-          description="The mock backend isn't responding. Restart the dev server if this persists."
+          description="We couldn't load the courses right now. Please try again."
           retry={() => window.location.reload()}
         />
       ) : items.length === 0 ? (
