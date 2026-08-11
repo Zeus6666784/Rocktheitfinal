@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FileText, Download, Award, Sparkles } from 'lucide-react';
@@ -98,11 +98,19 @@ function generateCertificatePdf({ courseName, userName, completedDate, certifica
   return doc;
 }
 
-function aggregateWatchPercentage(perLecture) {
-  const values = Object.values(perLecture || {});
-  if (!values.length) return 0;
-  const sum = values.reduce((acc, n) => acc + Number(n || 0), 0);
-  return Math.round(sum / values.length);
+function aggregateWatchPercentage(perLecture, lectureIds = []) {
+  const ids = Array.isArray(lectureIds) ? lectureIds.map(String) : [];
+  if (!ids.length) return 0;
+
+  // Always divide by the total number of lectures, including lectures that
+  // have never been watched. This prevents one watched lecture from making
+  // the whole course appear complete.
+  const sum = ids.reduce((total, id) => {
+    const value = Number(perLecture?.[id] ?? 0);
+    return total + Math.min(100, Math.max(0, Number.isFinite(value) ? value : 0));
+  }, 0);
+
+  return Math.round(sum / ids.length);
 }
 
 /**
@@ -120,6 +128,7 @@ export default function Learning() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [perLecture, setPerLecture] = useState({});
+  const lastSyncedPercentRef = useRef({});
   const [currentLectureId, setCurrentLectureId] = useState(null);
 
   useEffect(() => {
@@ -128,6 +137,8 @@ export default function Learning() {
     setError(null);
     setCourse(null);
     setCurrentLectureId(null);
+    setPerLecture({});
+    lastSyncedPercentRef.current = {};
 
     (async () => {
       try {
@@ -150,13 +161,33 @@ export default function Learning() {
 
   useEffect(() => {
     if (!courseId || !course) return;
+
+    const lectureIds = (course.lectures ?? []).map((lecture) => String(lecture.id));
     const saved = readLocalProgress(courseId);
-    if (saved?.perLecture) setPerLecture(saved.perLecture);
+    const savedProgress = saved?.perLecture && typeof saved.perLecture === 'object'
+      ? saved.perLecture
+      : {};
+
+    // Keep only progress belonging to this course and initialise every lecture
+    // to 0 so the aggregate denominator is stable across refreshes.
+    const normalized = Object.fromEntries(
+      lectureIds.map((id) => {
+        const value = Number(savedProgress[id] ?? 0);
+        return [id, Number.isFinite(value) ? Math.min(100, Math.max(0, value)) : 0];
+      }),
+    );
+
+    setPerLecture(normalized);
   }, [courseId, course]);
 
+  const lectureIds = useMemo(
+    () => (course?.lectures ?? []).map((lecture) => String(lecture.id)),
+    [course],
+  );
+
   const watchPercentage = useMemo(
-    () => aggregateWatchPercentage(perLecture),
-    [perLecture],
+    () => aggregateWatchPercentage(perLecture, lectureIds),
+    [perLecture, lectureIds],
   );
 
   const completedSet = useMemo(() => {
@@ -204,31 +235,42 @@ export default function Learning() {
     (playedFraction) => {
       if (!currentLecture) return;
       const pct = Math.round(playedFraction * 100);
+
       setPerLecture((prev) => {
-        const existing = prev[currentLecture.id] ?? 0;
-        const next = { ...prev, [currentLecture.id]: Math.max(existing, pct) };
-        const overall = aggregateWatchPercentage(next);
+        const existing = Number(prev[currentLecture.id] ?? 0);
+        const next = {
+          ...prev,
+          [currentLecture.id]: Math.max(existing, pct),
+        };
+        const overall = aggregateWatchPercentage(next, lectureIds);
         writeLocalProgress(courseId, { perLecture: next, watchPercentage: overall });
         return next;
       });
-      // ponytail: when authenticated, mirror progress to the backend so
-      // the user's account actually reflects what they watched. The
-      // server enforces the 90% completion gate for certificates.
+
+      // Sync authenticated progress only when the percentage actually changes
+      // by a useful amount. This avoids a request on every player progress tick.
       if (getToken()) {
-        updateProgress({
-          courseId,
-          lectureId: currentLecture.id,
-          watchPercentage: pct,
-          completed: pct >= 90,
-        }).catch(() => {
-          /* ignore - localStorage is the source of truth for the demo */
-        });
+        const lastSynced = lastSyncedPercentRef.current[currentLecture.id] ?? -1;
+        const shouldSync = pct >= 90 || pct === 0 || pct - lastSynced >= 5;
+
+        if (shouldSync) {
+          lastSyncedPercentRef.current[currentLecture.id] = pct;
+          updateProgress({
+            courseId,
+            lectureId: currentLecture.id,
+            watchPercentage: pct,
+            completed: pct >= 90,
+          }).catch(() => {
+            // Local progress remains the demo fallback if the API is unavailable.
+          });
+        }
       }
+
       if (pct >= 90 && nextLecture && !nextLecture.locked) {
         setCurrentLectureId(nextLecture.id);
       }
     },
-    [currentLecture, nextLecture, courseId],
+    [currentLecture, nextLecture, courseId, lectureIds],
   );
 
   const handleComplete = useCallback(() => {
@@ -279,6 +321,7 @@ export default function Learning() {
           <VideoPlayer
             key={currentLecture?.id ?? 'none'}
             videoUrl={currentLecture?.videoUrl}
+            fallbackVideoUrl={currentLecture?.fallbackVideoUrl}
             title={currentLecture?.title}
             onProgress={handleProgress}
             onComplete={handleComplete}

@@ -93,6 +93,12 @@ export async function getCourse(idOrSlug, { userId } = {}) {
 
   const lectures = (course.lectures || []).map((lec) => {
     const prev = (course.lectures || []).find((l) => l.order === lec.order - 1);
+    // Keep the demo's Data Visualization lecture tied to the intended
+    // source even if the Mongo document was seeded before the slug-based
+    // video mapping fix. This avoids serving the generic placeholder video.
+    const videoUrl = course.slug === 'data-visualization-with-power-bi-and-tableau'
+      ? 'https://youtu.be/R-c286YGwF0'
+      : lec.videoUrl;
     // ponytail: anonymous demo users see all lectures unlocked so the
     // walkthrough actually finishes. Authenticated users follow the
     // per-lecture lock chain driven by completedLectures.
@@ -105,7 +111,12 @@ export async function getCourse(idOrSlug, { userId } = {}) {
       // ponytail: demo exposes videoUrl here so the unauthenticated
       // Learning page can play without the auth-gated lecture endpoint.
       // Auth builds the contract-faithful call to /api/lectures/:id.
-      videoUrl: lec.videoUrl,
+      videoUrl,
+      // Same-origin fallback for external YouTube embeds that fail in the
+      // deployed browser. The client tries the real URL first.
+      fallbackVideoUrl: /^https?:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)\//i.test(videoUrl || '')
+        ? '/api/videos-public/demo.mp4'
+        : null,
       duration: lec.duration,
       order: lec.order,
       // ponytail: pass resources through so the Learning page can render
