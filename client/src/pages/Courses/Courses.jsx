@@ -141,7 +141,7 @@ export default function Courses() {
                     <CourseCard
                       thumbnail={c.thumbnail}
                       title={c.title}
-                      instructor={c.instructor}
+                      instructor={c.instructor?.name}
                       duration={c.duration}
                       rating={c.rating}
                       students={c.students}

@@ -6,7 +6,7 @@ import { cn } from '../../../utils/cn';
  * CourseCard (Dev 2)
  * Used in the browse grid.
  * Per COMPONENT_CONTRACT.md:
- *   thumbnail, title, instructor, duration, rating, students, category, progress, onClick
+ *   thumbnail, title, instructor, duration, rating, students, category, progress
  */
 export default function CourseCard({
   thumbnail,
@@ -17,12 +17,9 @@ export default function CourseCard({
   students,
   category,
   progress,
-  onClick,
 }) {
   return (
-    <motion.button
-      type="button"
-      onClick={onClick}
+    <motion.div
       whileHover={{ y: -4 }}
       transition={{ duration: 0.2 }}
       className={cn(
@@ -93,6 +90,6 @@ export default function CourseCard({
           </div>
         ) : null}
       </div>
-    </motion.button>
+    </motion.div>
   );
 }

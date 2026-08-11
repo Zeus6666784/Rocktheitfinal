@@ -10,10 +10,10 @@ export async function listCourses({ q, category, page = 1, limit = 12, sort = 'n
   const { data } = await api.get('/courses', {
     params: { q, category, page, limit, sort },
   });
-  return data;
+  return data.data;
 }
 
 export async function getCourse(id) {
   const { data } = await api.get(`/courses/${id}`);
-  return data;
+  return data.data;
 }
