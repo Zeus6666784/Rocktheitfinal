@@ -31,15 +31,17 @@ api.interceptors.response.use(
   (error) => {
     const payload = error?.response?.data;
     const normalized = {
-      status: error?.response?.status ?? 0,
-      code: payload?.error?.code || 'NETWORK_ERROR',
-      message:
-        payload?.error?.message ||
-        error?.message ||
-        'Something went wrong. Please try again.',
+      success: false,
+      error: {
+        code: payload?.error?.code || 'NETWORK_ERROR',
+        message:
+          payload?.error?.message ||
+          error?.message ||
+          'Something went wrong. Please try again.',
+      },
     };
     return Promise.reject(normalized);
-  },
+  }
 );
 
 export default api;

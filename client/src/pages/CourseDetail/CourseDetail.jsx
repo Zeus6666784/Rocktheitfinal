@@ -123,9 +123,6 @@ export default function CourseDetail() {
                 name={instructor.name}
                 avatar={instructor.avatar}
                 bio={instructor.bio}
-                rating={instructor.rating}
-                courses={instructor.courses}
-                students={instructor.students}
               />
             </section>
           ) : null}
