@@ -19,16 +19,6 @@ for (const key of required) {
   }
 }
 
-if (process.env.NODE_ENV === 'production' && !process.env.ADMIN_TOKEN) {
-  throw new Error('Missing required env var: ADMIN_TOKEN');
-}
-
-if (!process.env.ADMIN_TOKEN && process.env.NODE_ENV !== 'production') {
-  console.warn(
-    '[server] WARNING: ADMIN_TOKEN is not set. Admin endpoints are reachable with no auth (dev-only).'
-  );
-}
-
 // IMPORTANT: db.js and index.js import this.
 export const env = {
   port: parseInt(process.env.PORT || '5000', 10),
@@ -40,5 +30,8 @@ export const env = {
     .split(',')
     .map((s) => s.trim()),
   adminToken: process.env.ADMIN_TOKEN || '',
+  adminName: process.env.ADMIN_NAME || '',
+  adminEmail: process.env.ADMIN_EMAIL || '',
+  adminPassword: process.env.ADMIN_PASSWORD || '',
   trustProxy: process.env.TRUST_PROXY === '1',
 };

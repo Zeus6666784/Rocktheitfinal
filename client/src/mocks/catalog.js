@@ -100,15 +100,15 @@ export const INSTRUCTORS = [
 ];
 
 // Lecture videos live under server/data/videos/ (served by Express via
-// the public demo route /api/videos-public/:filename). Files drop into
+// the authenticated managed-video route /api/videos/:filename). Files drop into
 // server/data/videos/ — see INSTRUCTIONS.md for the mapping + yt-dlp
 // commands. The catalog points at filenames; the seed just copies those
 // into MongoDB. The public route is anonymous - demo only; production
 // must move to signed URLs or object storage.
 const LECTURE_VIDEO_DEFAULT = '/api/videos-public/demo.mp4';
-const LECTURE_VIDEO_REACT_USESTATE = '/api/videos-public/react-usestate.mp4';
-const LECTURE_VIDEO_REACT_USEEFFECT = '/api/videos-public/react-useeffect.mp4';
-const LECTURE_VIDEO_DEEP_WORK = '/api/videos-public/deep-work.mp4';
+const LECTURE_VIDEO_REACT_USESTATE = '/api/videos/react-usestate.mp4';
+const LECTURE_VIDEO_REACT_USEEFFECT = '/api/videos/react-useeffect.mp4';
+const LECTURE_VIDEO_DEEP_WORK = '/api/videos/deep-work.mp4';
 
 function makeLectures(courseId, titles, videoUrls) {
   // Ponytail: if the caller hands a single string or array, normalise to an array.

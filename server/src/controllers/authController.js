@@ -17,3 +17,8 @@ export async function login(req, res) {
   const result = await authService.login({ email, password });
   return ok(res, result);
 }
+
+export async function session(req, res) {
+  const result = await authService.getSession(req.user.id);
+  return ok(res, result);
+}

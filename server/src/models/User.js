@@ -17,6 +17,7 @@ const userSchema = new mongoose.Schema(
       enum: ['student', 'instructor', 'admin'],
       default: 'student',
     },
+    disabled: { type: Boolean, default: false },
     enrolledCourses: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Course' }],
     completedCourses: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Course' }],
   },

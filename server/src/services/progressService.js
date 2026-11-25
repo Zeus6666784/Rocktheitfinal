@@ -6,6 +6,18 @@ import mongoose from 'mongoose';
 import Progress from '../models/Progress.js';
 import Lecture from '../models/Lecture.js';
 import Course from '../models/Course.js';
+import User from '../models/User.js';
+
+async function requireEnrollment(userId, courseId) {
+  const user = await User.findById(userId).select('enrolledCourses');
+  const enrolled = (user?.enrolledCourses || []).some((id) => String(id) === String(courseId));
+  if (!enrolled) {
+    const err = new Error('Enroll in the course before recording progress');
+    err.status = 403;
+    err.code = 'FORBIDDEN';
+    throw err;
+  }
+}
 
 export async function upsertProgress({ userId, courseId, lectureId, watchPercentage, completed }) {
   if (!mongoose.Types.ObjectId.isValid(courseId) || !mongoose.Types.ObjectId.isValid(lectureId)) {
@@ -14,6 +26,8 @@ export async function upsertProgress({ userId, courseId, lectureId, watchPercent
     err.code = 'BAD_REQUEST';
     throw err;
   }
+
+  await requireEnrollment(userId, courseId);
 
   // Ensure the lecture belongs to the course.
   const lecture = await Lecture.findById(lectureId).select('courseId order');
@@ -91,6 +105,13 @@ export async function upsertProgress({ userId, courseId, lectureId, watchPercent
 }
 
 export async function getProgress({ userId, courseId }) {
+  if (!mongoose.Types.ObjectId.isValid(courseId)) {
+    const err = new Error('Course not found');
+    err.status = 404;
+    err.code = 'NOT_FOUND';
+    throw err;
+  }
+  await requireEnrollment(userId, courseId);
   const doc = await Progress.findOne({ userId, courseId });
   const total = await Lecture.countDocuments({ courseId });
   if (!doc) {
