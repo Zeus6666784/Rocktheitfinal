@@ -24,7 +24,11 @@ streaming, learning progress, and certificate metadata.
 
 ## Verification
 
+<<<<<<< HEAD
 - Server tests: 32 passing, 0 failing.
+=======
+- Server tests: 31 passing, 0 failing.
+>>>>>>> d3049be2fa48d1a8d54c72268f8227a1bf1e316f
 - Production client build: passed.
 - Server syntax checks: passed for changed server modules.
 - Offline production dependency audits: 0 vulnerabilities in client and

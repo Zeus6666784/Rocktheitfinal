@@ -136,7 +136,11 @@ Client: `VITE_API_URL`, `VITE_API_PROXY`, `VITE_USE_MOCK`.
 
 ## Verification completed during this audit
 
+<<<<<<< HEAD
 - `npm test` in `server/`: 32 passing, 0 failing tests at the time of the
+=======
+- `npm test` in `server/`: 31 passing, 0 failing tests at the time of the
+>>>>>>> d3049be2fa48d1a8d54c72268f8227a1bf1e316f
   first report; the suite continues to grow as uncovered workflow defects are
   fixed.
 - `npm run build` in `client/`: successful Vite production build. Vite warns

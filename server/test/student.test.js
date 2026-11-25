@@ -52,6 +52,7 @@ test('enrolled student can stream a managed lecture with a byte range', async ()
   assert.equal(stream.headers['content-range'].startsWith('bytes 0-1/'), true);
 });
 
+<<<<<<< HEAD
 test('admin can inspect lecture metadata without enrolling', async () => {
   const inst = await User.create({ name: 'inst', email: 'i@x.com', password: 'hashed', role: 'instructor' });
   const admin = await User.create({ name: 'admin', email: 'a@x.com', password: 'hashed', role: 'admin' });
@@ -62,6 +63,8 @@ test('admin can inspect lecture metadata without enrolling', async () => {
   assert.equal(detail.status, 200);
 });
 
+=======
+>>>>>>> d3049be2fa48d1a8d54c72268f8227a1bf1e316f
 test('progress upsert and detail', async () => {
   const inst = await User.create({ name: 'inst', email: 'i@x.com', password: 'hashed', role: 'instructor' });
   const c = await Course.create({ title: 'C', slug: 'c', description: 'd', thumbnail: 't.png', category: 'Cat', duration: 100, instructor: inst._id, published: true });

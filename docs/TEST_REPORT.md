@@ -6,7 +6,11 @@ Date: 2026-11-25
 
 | Command | Result |
 | --- | --- |
+<<<<<<< HEAD
 | `npm test` | PASS — 32 tests, 0 failures |
+=======
+| `npm test` | PASS — 31 tests, 0 failures |
+>>>>>>> d3049be2fa48d1a8d54c72268f8227a1bf1e316f
 | `npm run build` | PASS — Vite production build completed |
 | `node --check` on changed server modules | PASS |
 | `npm audit --omit=dev --offline` in `client/` and `server/` | PASS — 0 vulnerabilities |
