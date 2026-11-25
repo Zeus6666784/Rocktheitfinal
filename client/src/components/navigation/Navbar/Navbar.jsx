@@ -5,15 +5,17 @@ import { BookOpen, Menu, X, Sun, Moon } from 'lucide-react';
 import { cn } from '../../../utils/cn';
 import SearchBar from '../../common/SearchBar/SearchBar';
 import { useTheme } from '../../../context/ThemeContext';
+import { useUser } from '../../../context/UserContext';
 
 /**
  * Navbar (Dev 2)
  * Sticky top nav: logo, primary links, search, profile, responsive menu.
  * Per COMPONENT_CONTRACT.md: receives `user` (optional).
  */
-export default function Navbar({ user }) {
+export default function Navbar() {
   const [open, setOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const { user, signOut } = useUser();
 
   const links = [
     { to: '/', label: 'Home' },
@@ -68,15 +70,16 @@ export default function Navbar({ user }) {
             {theme === 'dark' ? <Sun className="h-4 w-4" aria-hidden="true" /> : <Moon className="h-4 w-4" aria-hidden="true" />}
           </button>
           {user ? (
-            <div
-              className="h-10 w-10 rounded-full bg-primary/15 text-primary flex items-center justify-center font-heading font-semibold"
-              aria-label={`Signed in as ${user.name}`}
-            >
-              {user.name?.[0]?.toUpperCase() || 'U'}
+            <div className="flex items-center gap-2">
+              {user.role === 'admin' && (
+                <Link to="/admin/dashboard" className="text-small font-medium text-primary">Admin</Link>
+              )}
+              <Link to="/dashboard" className="text-small font-medium text-ink-muted hover:text-ink">Dashboard</Link>
+              <button onClick={signOut} className="text-small font-medium text-ink-muted hover:text-ink">Sign out</button>
             </div>
           ) : (
             <Link
-              to="/courses"
+              to="/signin"
               className="text-small font-medium text-ink-muted hover:text-ink"
             >
               Sign in

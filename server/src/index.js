@@ -10,6 +10,7 @@ import compression from 'compression';
 
 import { env } from './config/env.js';
 import { connectDb } from './config/db.js';
+import { bootstrapAdmin } from './services/adminBootstrap.js';
 import apiRouter from './routes/index.js';
 import { errorHandler, notFound } from './middleware/error.js';
 
@@ -164,18 +165,13 @@ export async function createApp() {
 }
 
 // ====================================================
-// START SERVER
-// ====================================================
-//
-// Do NOT use the old isMain check here.
-//
-// Railway executes:
-//
-// node server/src/index.js
-//
-// directly, so we start Express immediately.
+// START SERVER (only when run directly, not when imported)
 // ====================================================
 
+import { pathToFileURL } from 'node:url';
+const isMain = process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
+
+if (isMain) {
 try {
   console.log('[server] creating Express app...');
 
@@ -201,10 +197,9 @@ try {
   console.log('[server] connecting to MongoDB...');
 
   connectDb()
-    .then(() => {
-      console.log(
-        '[server] MongoDB connected successfully',
-      );
+    .then(async () => {
+      console.log('[server] MongoDB connected successfully');
+      try { await bootstrapAdmin(); console.log('[server] admin bootstrap checked'); } catch (e) { console.error('[server] admin bootstrap failed', e); }
     })
     .catch((err) => {
       console.error(
@@ -220,4 +215,5 @@ try {
   );
 
   process.exit(1);
+}
 }

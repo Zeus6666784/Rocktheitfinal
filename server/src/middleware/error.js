@@ -16,8 +16,10 @@ export function errorHandler(err, req, res, _next) {
   if (err.name === 'ValidationError') {
     return fail(res, 400, 'BAD_REQUEST', err.message);
   }
-  // ponytail: avoid leaking internals; surface a generic 500.
+  const status = err.status || 500;
+  const code = err.code || 'SERVER_ERROR';
+  const message = status < 500 ? err.message : 'Internal server error';
   // eslint-disable-next-line no-console
   console.error('[server]', err);
-  return fail(res, 500, 'SERVER_ERROR', 'Internal server error');
+  return fail(res, status, code, message);
 }

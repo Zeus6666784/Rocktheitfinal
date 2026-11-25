@@ -1,22 +1,35 @@
-import { createContext, useContext, useMemo, useState, useCallback } from 'react';
+import { createContext, useContext, useMemo, useState, useCallback, useEffect } from 'react';
+import { getToken, clearToken } from '../services/auth.js';
 
-/**
- * UserContext (demo).
- * No auth — the demo runs anonymously. The shape matches what the rest
- * of the app expects so swapping in real auth later is a one-place change.
- */
 const UserContext = createContext({
   user: null,
   setUser: () => {},
   signOut: () => {},
+  isAdmin: false,
 });
 
 export function UserProvider({ children }) {
   const [user, setUser] = useState(null);
 
-  const signOut = useCallback(() => setUser(null), []);
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      setUser({ id: payload.sub, role: payload.role || 'student' });
+    } catch {
+      clearToken();
+    }
+  }, []);
 
-  const value = useMemo(() => ({ user, setUser, signOut }), [user, signOut]);
+  const signOut = useCallback(() => { clearToken(); setUser(null); }, []);
+
+  const value = useMemo(() => ({
+    user,
+    setUser,
+    signOut,
+    isAdmin: user?.role === 'admin',
+  }), [user, signOut]);
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 }

@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import { env } from '../config/env.js';
 
-const sign = (userId) => jwt.sign({ sub: String(userId) }, env.jwtSecret, { expiresIn: env.jwtExpiresIn });
+const sign = (user) => jwt.sign({ sub: String(user._id), role: user.role }, env.jwtSecret, { expiresIn: env.jwtExpiresIn });
 
 const sanitize = (u) => ({
   id: String(u._id),
@@ -24,8 +24,8 @@ export async function register({ name, email, password }) {
     throw err;
   }
   const hash = await bcrypt.hash(password, 10);
-  const user = await User.create({ name, email: lower, password: hash });
-  return { token: sign(user._id), user: sanitize(user) };
+  const user = await User.create({ name, email: lower, password: hash, role: 'student' });
+  return { token: sign(user), user: sanitize(user) };
 }
 
 export async function login({ email, password }) {
@@ -44,5 +44,5 @@ export async function login({ email, password }) {
     err.code = 'UNAUTHORIZED';
     throw err;
   }
-  return { token: sign(user._id), user: sanitize(user) };
+  return { token: sign(user), user: sanitize(user) };
 }

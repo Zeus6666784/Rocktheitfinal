@@ -5,6 +5,9 @@ import Home from './pages/Home';
 import Courses from './pages/Courses';
 import CourseDetail from './pages/CourseDetail';
 import Learning from './pages/Learning';
+import SignIn from './pages/SignIn';
+import Register from './pages/Register';
+import AdminDashboard from './pages/AdminDashboard';
 
 /**
  * Top-level app shell. Real Navbar + Footer from Dev 2; four route
@@ -20,6 +23,9 @@ export default function App() {
           <Route path="/courses" element={<Courses />} />
           <Route path="/courses/:id" element={<CourseDetail />} />
           <Route path="/learn/:courseId" element={<Learning />} />
+          <Route path="/signin" element={<SignIn />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="*" element={<Home />} />
         </Routes>
       </main>
