@@ -20,12 +20,19 @@ export async function getCertificate({ userId, courseId }) {
   const [progress, course, user] = await Promise.all([
     Progress.findOne({ userId, courseId }),
     Course.findById(courseId).select('title'),
-    User.findById(userId).select('name'),
+    User.findById(userId).select('name enrolledCourses'),
   ]);
   if (!course) {
     const err = new Error('Course not found');
     err.status = 404;
     err.code = 'NOT_FOUND';
+    throw err;
+  }
+  const enrolled = (user?.enrolledCourses || []).some((id) => String(id) === String(courseId));
+  if (!enrolled) {
+    const err = new Error('Enroll in the course before requesting a certificate');
+    err.status = 403;
+    err.code = 'FORBIDDEN';
     throw err;
   }
   if (!progress || progress.watchPercentage < 90) {

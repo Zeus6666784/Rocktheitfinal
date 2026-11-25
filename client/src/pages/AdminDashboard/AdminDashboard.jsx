@@ -2,15 +2,24 @@ import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import api from '../../services/api.js';
 import { useUser } from '../../context/UserContext.jsx';
+import CourseEditor from './CourseEditor.jsx';
+import LectureEditor from './LectureEditor.jsx';
 
 const TABS = ['Overview','Courses','Lectures','Students','Enrollments','Categories','Instructors','Video Library','Analytics','Settings'];
 
 export default function AdminDashboard() {
-  const { isAdmin } = useUser();
+  const { isAdmin, isHydrating } = useUser();
   const [tab, setTab] = useState('Overview');
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [instructors, setInstructors] = useState([]);
+  const [coursesForLectures, setCoursesForLectures] = useState([]);
+  const [editingCourse, setEditingCourse] = useState(null);
+  const [editingLecture, setEditingLecture] = useState(null);
+  const [categoryName, setCategoryName] = useState('');
+  const [videoFile, setVideoFile] = useState(null);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
 
   const load = async (t) => {
     setLoading(true); setError(''); setData(null);
@@ -33,10 +42,64 @@ export default function AdminDashboard() {
     finally { setLoading(false); }
   };
   useEffect(() => { load(tab); }, [tab]);
+  useEffect(() => {
+    if (tab === 'Courses') api.get('/admin/instructors').then((response) => setInstructors(response.data.data)).catch(() => setInstructors([]));
+    if (tab === 'Lectures') api.get('/admin/courses').then((response) => setCoursesForLectures(response.data.data)).catch(() => setCoursesForLectures([]));
+  }, [tab]);
 
+  if (isHydrating) return <div className="container-shell py-8">Checking your session…</div>;
   if (!isAdmin) return <Navigate to="/" replace />;
 
   const refresh = () => load(tab);
+  const openVideo = async (video) => {
+    try {
+      const response = await api.get(video.fileUrl, { responseType: 'blob' });
+      const objectUrl = URL.createObjectURL(response.data);
+      window.open(objectUrl, '_blank', 'noopener,noreferrer');
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+    } catch (e) {
+      setError(e?.error?.message || 'Unable to open this video.');
+    }
+  };
+  const saveCourse = async (payload, id) => {
+    try {
+      if (id) await api.patch(`/admin/courses/${id}`, payload);
+      else await api.post('/admin/courses', payload);
+      setEditingCourse(null);
+      refresh();
+    } catch (e) { setError(e?.error?.message || 'Unable to save course.'); }
+  };
+  const saveLecture = async (payload, id) => {
+    try {
+      if (id) await api.put(`/admin/lectures/${id}`, payload);
+      else await api.post('/admin/lectures', payload);
+      setEditingLecture(null);
+      refresh();
+    } catch (e) { setError(e?.error?.message || 'Unable to save lecture.'); }
+  };
+  const createCategory = async (event) => {
+    event.preventDefault();
+    try {
+      await api.post('/admin/categories', { name: categoryName });
+      setCategoryName('');
+      refresh();
+    } catch (e) { setError(e?.error?.message || 'Unable to create category.'); }
+  };
+  const uploadVideo = async (event) => {
+    event.preventDefault();
+    if (!videoFile) return;
+    setUploadingVideo(true);
+    setError('');
+    try {
+      const body = new FormData();
+      body.append('file', videoFile);
+      await api.post('/admin/videos', body, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setVideoFile(null);
+      event.currentTarget.reset();
+      refresh();
+    } catch (e) { setError(e?.error?.message || 'Unable to upload video.'); }
+    finally { setUploadingVideo(false); }
+  };
 
   return (
     <div className="container-shell py-8">
@@ -59,13 +122,14 @@ export default function AdminDashboard() {
 
       {tab === 'Courses' && Array.isArray(data) && (
         <div className="space-y-3">
+          <CourseEditor course={editingCourse} instructors={instructors} onCancel={() => setEditingCourse(null)} onSave={saveCourse} />
           {data.map(c => (
             <div key={c.id} className="p-4 bg-surface border rounded flex justify-between items-center">
               <div>
                 <div className="font-semibold">{c.title}</div>
                 <div className="text-sm text-ink-muted">{c.category} · {c.lectures} lectures · {c.students} students · {c.published?'published':'draft'} · {c.instructor?.name||'—'}</div>
               </div>
-              <button onClick={async()=>{ if(!confirm('Delete course?'))return; await api.delete(`/admin/courses/${c.id}`); refresh(); }} className="text-red-500 text-sm">Delete</button>
+              <div className="flex gap-3"><button onClick={() => setEditingCourse(c)} className="text-primary text-sm">Edit</button><button onClick={async()=>{ if(!confirm('Delete course?'))return; await api.delete(`/admin/courses/${c.id}`); refresh(); }} className="text-red-500 text-sm">Delete</button></div>
             </div>
           ))}
           {data.length===0 && <p className="text-ink-muted">No courses.</p>}
@@ -74,13 +138,14 @@ export default function AdminDashboard() {
 
       {tab === 'Lectures' && Array.isArray(data) && (
         <div className="space-y-3">
+          <LectureEditor lecture={editingLecture} courses={coursesForLectures} onCancel={() => setEditingLecture(null)} onSave={saveLecture} />
           {data.map(l => (
             <div key={l.id} className="p-4 bg-surface border rounded flex justify-between items-center">
               <div>
                 <div className="font-semibold">{l.title}</div>
                 <div className="text-sm text-ink-muted">course {l.courseId} · order {l.order} · {l.duration}s · {l.locked?'locked':'unlocked'}</div>
               </div>
-              <button onClick={async()=>{ if(!confirm('Delete lecture?'))return; await api.delete(`/admin/lectures/${l.id}`); refresh(); }} className="text-red-500 text-sm">Delete</button>
+              <div className="flex gap-3"><button onClick={() => setEditingLecture(l)} className="text-primary text-sm">Edit</button><button onClick={async()=>{ if(!confirm('Delete lecture?'))return; await api.delete(`/admin/lectures/${l.id}`); refresh(); }} className="text-red-500 text-sm">Delete</button></div>
             </div>
           ))}
           {data.length===0 && <p className="text-ink-muted">No lectures.</p>}
@@ -113,9 +178,9 @@ export default function AdminDashboard() {
       {tab === 'Enrollments' && Array.isArray(data) && (
         <div className="space-y-3">
           {data.map((e,i) => (
-            <div key={i} className="p-4 bg-surface border rounded">
-              <div className="font-semibold">{e.userName} <span className="text-xs text-ink-muted">({e.userEmail})</span></div>
-              <div className="text-sm text-ink-muted">{e.courseTitle}</div>
+            <div key={i} className="p-4 bg-surface border rounded flex justify-between items-center gap-3">
+              <div><div className="font-semibold">{e.userName} <span className="text-xs text-ink-muted">({e.userEmail})</span></div><div className="text-sm text-ink-muted">{e.courseTitle}</div></div>
+              <button type="button" onClick={async () => { if (!confirm('Remove this enrollment and its progress?')) return; try { await api.delete(`/admin/enrollments/${e.userId}/${e.courseId}`); refresh(); } catch (err) { setError(err?.error?.message || 'Unable to remove enrollment.'); } }} className="text-sm text-red-500">Remove</button>
             </div>
           ))}
           {data.length===0 && <p className="text-ink-muted">No enrollments.</p>}
@@ -124,10 +189,11 @@ export default function AdminDashboard() {
 
       {tab === 'Categories' && Array.isArray(data) && (
         <div className="space-y-3">
+          <form onSubmit={createCategory} className="flex gap-2 rounded border bg-surface p-3"><input value={categoryName} onChange={(event) => setCategoryName(event.target.value)} required placeholder="New category" className="min-w-0 flex-1 rounded border px-3 py-2" /><button type="submit" className="rounded bg-primary px-3 py-2 text-sm text-white">Add</button></form>
           {data.map(c => (
             <div key={c.name} className="p-4 bg-surface border rounded flex justify-between items-center">
               <div className="font-semibold">{c.name}</div>
-              <div className="text-sm text-ink-muted">{c.courses} courses</div>
+              <div className="flex items-center gap-3"><div className="text-sm text-ink-muted">{c.courses} courses</div>{c.courses === 0 && <button type="button" onClick={async () => { try { await api.delete(`/admin/categories/${encodeURIComponent(c.name)}`); refresh(); } catch (err) { setError(err?.error?.message || 'Unable to delete category.'); } }} className="text-sm text-red-500">Delete</button>}</div>
             </div>
           ))}
           {data.length===0 && <p className="text-ink-muted">No categories.</p>}
@@ -150,13 +216,14 @@ export default function AdminDashboard() {
 
       {tab === 'Video Library' && Array.isArray(data) && (
         <div className="space-y-3">
+          <form onSubmit={uploadVideo} className="flex flex-wrap items-center gap-3 rounded border bg-surface p-3"><input type="file" accept="video/mp4,video/webm,video/quicktime,.m4v" onChange={(event) => setVideoFile(event.target.files?.[0] || null)} required className="text-sm" /><button type="submit" disabled={uploadingVideo} className="rounded bg-primary px-3 py-2 text-sm text-white disabled:opacity-50">{uploadingVideo ? 'Uploading…' : 'Upload video'}</button></form>
           {data.map(v => (
             <div key={v.filename} className="p-4 bg-surface border rounded flex justify-between items-center">
               <div>
                 <div className="font-semibold">{v.filename}</div>
                 <div className="text-sm text-ink-muted">{Math.round(v.sizeBytes/1024/1024*100)/100} MB · {v.mtime}</div>
               </div>
-              <a href={v.fileUrl} target="_blank" rel="noreferrer" className="text-primary text-sm">Open</a>
+              <button type="button" onClick={() => openVideo(v)} className="text-primary text-sm">Open</button>
             </div>
           ))}
           {data.length===0 && <p className="text-ink-muted">No videos.</p>}

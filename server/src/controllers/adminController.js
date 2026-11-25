@@ -92,12 +92,11 @@ export async function uploadVideo(req, res) {
     return fail(res, 500, 'RENAME_FAILED', err.message);
   }
 
-  // Returned URL points at the public /api/videos-public/:filename route
-  // so the SPA's <video> element can play it without an admin token.
+  // Managed videos are always returned through the authenticated endpoint.
   const filename = path.basename(target);
   return ok(res, {
     filename,
-    fileUrl: `/api/videos-public/${filename}`,
+    fileUrl: `/api/videos/${filename}`,
     sizeBytes: req.file.size,
   });
 }
@@ -119,7 +118,7 @@ export async function listVideos(_req, res) {
     const stat = await fsp.stat(full);
     items.push({
       filename: e.name,
-      fileUrl: `/api/videos-public/${e.name}`,
+      fileUrl: `/api/videos/${e.name}`,
       sizeBytes: stat.size,
       mtime: stat.mtime.toISOString(),
     });
@@ -134,8 +133,8 @@ export async function patchLectureVideo(req, res) {
   if (!videoUrl || typeof videoUrl !== 'string') {
     return fail(res, 400, 'BAD_REQUEST', 'videoUrl is required');
   }
-  if (!videoUrl.startsWith('/api/videos/') && !videoUrl.startsWith('/api/videos-public/') && !videoUrl.startsWith('https://')) {
-    return fail(res, 400, 'BAD_REQUEST', 'videoUrl must be /api/videos/..., /api/videos-public/... or https://...');
+  if (!videoUrl.startsWith('/api/videos/') && videoUrl !== '/api/videos-public/demo.mp4' && !videoUrl.startsWith('https://')) {
+    return fail(res, 400, 'BAD_REQUEST', 'videoUrl must be /api/videos/..., the public demo video, or https://...');
   }
 
   const lecture = await Lecture.findByIdAndUpdate(id, { $set: { videoUrl } }, { new: true });
@@ -156,8 +155,7 @@ export async function patchLectureVideo(req, res) {
 //
 // Stays under /api/ so the Vite dev proxy can forward it without CORS
 // gymnastics.
-export function streamVideo(req, res) {
-  const filename = req.params.filename || '';
+export function sendVideoFile(res, filename, cacheControl = 'private, max-age=3600') {
   // Defence-in-depth: reject anything that isn't a basic safe filename.
   // The router already enforces this, but if anyone wires this handler
   // differently we don't want a path traversal escape.
@@ -175,8 +173,12 @@ export function streamVideo(req, res) {
   if (!fs.existsSync(full)) return fail(res, 404, 'NOT_FOUND', 'Video not found');
 
   // Stale-busting: 1h cache.
-  res.set('Cache-Control', 'private, max-age=3600');
-  res.sendFile(full);
+  res.set('Cache-Control', cacheControl);
+  return res.sendFile(full);
+}
+
+export function streamVideo(req, res) {
+  return sendVideoFile(res, req.params.filename || '');
 }
 
 // ponytail: public stream variant for the demo. Same files, no admin
@@ -184,14 +186,10 @@ export function streamVideo(req, res) {
 // this for signed URLs or object storage.
 export function streamVideoPublic(req, res) {
   const filename = req.params.filename || '';
-  if (!/^[A-Za-z0-9._-]{1,120}$/.test(filename)) {
-    return fail(res, 400, 'BAD_REQUEST', 'Invalid filename');
+  // Keep a single intentional public asset for the product walkthrough.
+  // Uploaded/managed videos must use the authenticated stream endpoint.
+  if (filename !== 'demo.mp4') {
+    return fail(res, 403, 'FORBIDDEN', 'Only the public demo video is available without authentication');
   }
-  const full = path.join(VIDEOS_DIR, filename);
-  if (!full.startsWith(VIDEOS_DIR + path.sep) && full !== VIDEOS_DIR) {
-    return fail(res, 400, 'BAD_REQUEST', 'Invalid filename');
-  }
-  if (!fs.existsSync(full)) return fail(res, 404, 'NOT_FOUND', 'Video not found');
-  res.set('Cache-Control', 'public, max-age=3600');
-  res.sendFile(full);
+  return sendVideoFile(res, filename, 'public, max-age=3600');
 }

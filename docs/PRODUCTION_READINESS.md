@@ -1,21 +1,43 @@
 # Production Readiness Report
 
-## Summary
-Backend auth upgraded to JWT role-based. Admin bootstrap implemented. Frontend wired with token storage and role hydrate. Admin dashboard route added. Security: video stream gated by admin JWT; public demo route remains for fallback only.
+Date: 2026-11-25
+
+## Current status
+
+The application is buildable and has a verified server integration suite. Core
+student and administrator workflows are implemented: authentication,
+DB-authoritative session hydration, role authorization, course/lecture
+management, categories, enrollment removal, video upload and protected
+streaming, learning progress, and certificate metadata.
+
+## Security controls verified
+
+- JWT authentication is rechecked against the database for protected routes.
+- Deleted, disabled, expired, tampered, and demoted accounts are rejected.
+- Progress and certificates require enrolment.
+- Managed videos use authenticated streams; only `demo.mp4` remains public.
+- Student managed-video playback is scoped to course enrolment and supports
+  HTTP byte ranges.
+- Video filenames are validated and path traversal is rejected.
+- Helmet, CORS configuration, request-size limits, and rate limiters remain
+  enabled in the server application.
 
 ## Verification
-- Server syntax: PASS (node --check)
-- Client build: NOT RUN (esbuild platform mismatch in local node_modules; run `npm ci` on target platform)
-- Tests: NONE EXIST (recommend adding unit/integration before production)
 
-## Open Items (not yet done)
-- Full admin panel UI (12 sidebar sections)
-- Test suite (unit, integration, E2E)
-- Remove/restrict /videos-public in production (signed URLs)
-- CI/CD pipeline
-- API versioning
+- Server tests: 31 passing, 0 failing.
+- Production client build: passed.
+- Server syntax checks: passed for changed server modules.
+- Offline production dependency audits: 0 vulnerabilities in client and
+  server lockfile scopes.
+- Focused static scan: no `eval`, `dangerouslySetInnerHTML`, or non-demo
+  public-video references found in application source.
 
-## Security Notes
-- ADMIN_TOKEN still required for video upload endpoints; ensure set in production.
-- Do not commit .env; .env.example updated with ADMIN_* placeholders (blank).
-- No passwords/tokens printed in logs.
+## Remaining release work
+
+1. Add a browser E2E suite for the full student and administrator journeys.
+2. Run dependency audits in CI using the existing client/server lockfiles.
+3. Manually test deployment-specific CORS, MongoDB network access, upload
+   storage durability, and environment configuration before release.
+
+No deployment, Git operation, production-database mutation, or secret output
+occurred during this work.

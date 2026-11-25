@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Navigate, useLocation, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FileText, Download, Award, Sparkles } from 'lucide-react';
 import jsPDF from 'jspdf';
@@ -15,7 +15,9 @@ import Loader from '../../components/common/Loader/Loader';
 import ErrorState from '../../components/common/ErrorState/ErrorState';
 import { getCourse } from '../../services/courses';
 import { getToken } from '../../services/auth';
+import { useUser } from '../../context/UserContext';
 import { updateProgress } from '../../services/progress';
+import api from '../../services/api';
 
 // ponytail: localStorage progress keeps the demo self-contained — no auth
 // required, progress survives a refresh. Keyed per course.
@@ -123,15 +125,19 @@ function aggregateWatchPercentage(perLecture, lectureIds = []) {
  */
 export default function Learning() {
   const { courseId } = useParams();
+  const location = useLocation();
+  const { user, isHydrating } = useUser();
 
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [perLecture, setPerLecture] = useState({});
+  const [managedVideoUrl, setManagedVideoUrl] = useState(null);
   const lastSyncedPercentRef = useRef({});
   const [currentLectureId, setCurrentLectureId] = useState(null);
 
   useEffect(() => {
+    if (!user) return undefined;
     let alive = true;
     setLoading(true);
     setError(null);
@@ -157,7 +163,7 @@ export default function Learning() {
     return () => {
       alive = false;
     };
-  }, [courseId]);
+  }, [courseId, user]);
 
   useEffect(() => {
     if (!courseId || !course) return;
@@ -208,6 +214,26 @@ export default function Learning() {
     () => (course?.lectures ?? []).find((l) => l.id === currentLectureId) ?? null,
     [course, currentLectureId],
   );
+
+  useEffect(() => {
+    const source = currentLecture?.videoUrl;
+    if (!currentLecture?.id || !source?.startsWith('/api/videos/')) {
+      setManagedVideoUrl(null);
+      return undefined;
+    }
+    let active = true;
+    let objectUrl = null;
+    api.get(`/lectures/${currentLecture.id}/video`, { responseType: 'blob' })
+      .then((response) => {
+        objectUrl = URL.createObjectURL(response.data);
+        if (active) setManagedVideoUrl(objectUrl);
+      })
+      .catch(() => { if (active) setManagedVideoUrl(null); });
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [currentLecture?.id, currentLecture?.videoUrl]);
 
   const orderedLectures = course?.lectures ?? [];
   const currentIndex = orderedLectures.findIndex((l) => l.id === currentLectureId);
@@ -278,6 +304,14 @@ export default function Learning() {
     handleProgress(1);
   }, [currentLecture, handleProgress]);
 
+  if (isHydrating) {
+    return <div className="container-shell py-16"><Loader size="large" label="Checking your session" /></div>;
+  }
+
+  if (!user) {
+    return <Navigate to={`/signin?next=${encodeURIComponent(location.pathname)}`} replace />;
+  }
+
   if (loading) {
     return (
       <div className="container-shell py-16 flex items-center justify-center">
@@ -300,6 +334,9 @@ export default function Learning() {
 
   const resources = currentLecture?.resources ?? [];
   const certificateEligible = watchPercentage >= 90;
+  const playbackVideoUrl = currentLecture?.videoUrl?.startsWith('/api/videos/')
+    ? managedVideoUrl
+    : currentLecture?.videoUrl;
 
   // ponytail: demo certificate is generated in-browser; no auth required.
   const handleDownloadCertificate = () => {
@@ -320,7 +357,7 @@ export default function Learning() {
         <div className="space-y-4">
           <VideoPlayer
             key={currentLecture?.id ?? 'none'}
-            videoUrl={currentLecture?.videoUrl}
+            videoUrl={playbackVideoUrl}
             fallbackVideoUrl={currentLecture?.fallbackVideoUrl}
             title={currentLecture?.title}
             onProgress={handleProgress}

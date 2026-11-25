@@ -91,6 +91,7 @@ export async function getCourse(idOrSlug, { userId } = {}) {
     }
   }
 
+  const canViewVideo = Boolean(userId && enrolled);
   const lectures = (course.lectures || []).map((lec) => {
     const prev = (course.lectures || []).find((l) => l.order === lec.order - 1);
     // Keep the demo's Data Visualization lecture tied to the intended
@@ -108,13 +109,13 @@ export async function getCourse(idOrSlug, { userId } = {}) {
     return {
       id: String(lec._id),
       title: lec.title,
-      // ponytail: demo exposes videoUrl here so the unauthenticated
-      // Learning page can play without the auth-gated lecture endpoint.
-      // Auth builds the contract-faithful call to /api/lectures/:id.
-      videoUrl,
+      // Video sources are released only after the requester is enrolled.
+      // Public course details retain the lesson metadata needed by the
+      // catalogue without exposing uploaded-media paths.
+      videoUrl: canViewVideo ? videoUrl : null,
       // Same-origin fallback for external YouTube embeds that fail in the
       // deployed browser. The client tries the real URL first.
-      fallbackVideoUrl: /^https?:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)\//i.test(videoUrl || '')
+      fallbackVideoUrl: canViewVideo && /^https?:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)\//i.test(videoUrl || '')
         ? '/api/videos-public/demo.mp4'
         : null,
       duration: lec.duration,
@@ -160,11 +161,12 @@ export async function enroll(courseId, userId) {
     err.code = 'NOT_FOUND';
     throw err;
   }
-  await User.findByIdAndUpdate(userId, {
-    $addToSet: { enrolledCourses: course._id },
-  });
-  // ponytail: skip the students counter update on every enroll — already inflated in seed;
-  // add a $inc when enrollment counts become a real metric.
+  const user = await User.findOneAndUpdate(
+    { _id: userId, enrolledCourses: { $ne: course._id } },
+    { $addToSet: { enrolledCourses: course._id } },
+    { new: true },
+  );
+  if (user) await Course.updateOne({ _id: course._id }, { $inc: { students: 1 } });
   return { enrolled: true, courseId: String(course._id) };
 }
 

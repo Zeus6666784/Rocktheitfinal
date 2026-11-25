@@ -44,5 +44,22 @@ export async function login({ email, password }) {
     err.code = 'UNAUTHORIZED';
     throw err;
   }
+  if (user.disabled) {
+    const err = new Error('Account disabled');
+    err.status = 403;
+    err.code = 'FORBIDDEN';
+    throw err;
+  }
   return { token: sign(user), user: sanitize(user) };
+}
+
+export async function getSession(userId) {
+  const user = await User.findById(userId);
+  if (!user || user.disabled) {
+    const err = new Error('Account unavailable');
+    err.status = 401;
+    err.code = 'UNAUTHORIZED';
+    throw err;
+  }
+  return { user: sanitize(user) };
 }

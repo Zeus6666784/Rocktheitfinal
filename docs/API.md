@@ -83,6 +83,23 @@ Future AI endpoints (`/ai/chat`, `/ai/quiz`, `/ai/summary`, `/ai/recommend`) are
 
 ---
 
+## Session
+
+### `GET /api/auth/session`
+
+Verifies the bearer token against the current database account and returns the
+authoritative user profile. The client calls this while hydrating a saved
+session, so deleted, disabled, or role-changed accounts are not trusted from a
+cached JWT payload.
+
+**Auth**: required
+
+**Response 200**: `{ "success": true, "data": { "user": { "id": "string", "name": "string", "email": "string", "role": "string" } } }`
+
+**Errors**: `401`, `403`
+
+---
+
 ## Courses
 
 ### `GET /api/courses`

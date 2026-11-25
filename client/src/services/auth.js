@@ -28,4 +28,9 @@ export async function register(name, email, password) {
   return { token, user };
 }
 
+export async function getSession() {
+  const res = await api.get('/auth/session');
+  return res.data.data;
+}
+
 export function logout() { clearToken(); }

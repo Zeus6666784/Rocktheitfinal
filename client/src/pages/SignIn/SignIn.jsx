@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { login } from '../../services/auth.js';
 import { useUser } from '../../context/UserContext.jsx';
 
@@ -10,6 +10,7 @@ export default function SignIn() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
   const { setUser } = useUser();
 
   const handleSubmit = async (e) => {
@@ -19,8 +20,9 @@ export default function SignIn() {
     try {
       const { user } = await login(email, password);
       setUser(user);
+      const requestedPath = new URLSearchParams(location.search).get('next');
       if (user?.role === 'admin') navigate('/admin/dashboard');
-      else navigate('/dashboard');
+      else navigate(requestedPath?.startsWith('/') ? requestedPath : '/dashboard');
     } catch (err) {
       setError(err?.error?.message || 'Login failed');
     } finally {

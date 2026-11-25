@@ -51,20 +51,24 @@ test('login returns token for valid credentials', async () => {
   assert.equal(r.body.data.user.email, 'a@x.com');
 });
 
+test('session returns the database-backed user for a valid token', async () => {
+  const registered = await request(app).post('/api/auth/register').send({ name: 'Alice', email: 'a@x.com', password: 'secret1' });
+  const session = await request(app).get('/api/auth/session').set('Authorization', `Bearer ${registered.body.data.token}`);
+  assert.equal(session.status, 200);
+  assert.equal(session.body.data.user.email, 'a@x.com');
+  assert.equal(session.body.data.user.role, 'student');
+});
+
 test('login rejects bad password', async () => {
   await request(app).post('/api/auth/register').send({ name: 'Alice', email: 'a@x.com', password: 'secret1' });
   const r = await request(app).post('/api/auth/login').send({ email: 'a@x.com', password: 'wrong' });
   assert.equal(r.status, 401);
 });
 
-test('disabled user cannot login-derived access (token rejected)', async () => {
+test('disabled user cannot log in', async () => {
   await request(app).post('/api/auth/register').send({ name: 'Alice', email: 'a@x.com', password: 'secret1' });
   await User.updateOne({ email: 'a@x.com' }, { $set: { disabled: true } });
-  // issue token manually by login first impossible; login still returns token, but protected route rejects
   const login = await request(app).post('/api/auth/login').send({ email: 'a@x.com', password: 'secret1' });
-  const token = login.body.data.token;
-  const r = await request(app).get('/api/courses').set('Authorization', `Bearer ${token}`);
-  // courses optional auth passes; use a protected endpoint instead
-  const r2 = await request(app).get('/api/progress/000000000000000000000000').set('Authorization', `Bearer ${token}`);
-  assert.equal(r2.status, 403);
+  assert.equal(login.status, 403);
+  assert.equal(login.body.error.code, 'FORBIDDEN');
 });

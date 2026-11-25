@@ -4,12 +4,13 @@
   "private": true,
   "description": "Learnify - Learning Management System (MERN). Railway deploy entrypoint.",
   "scripts": {
-    "build": "npm --prefix server install --omit=dev && npm --prefix client install && npm --prefix client run build",
+    "build": "npm --prefix client run build",
     "start": "NODE_ENV=production node server/src/index.js",
     "dev:server": "npm --prefix server run dev",
     "dev:client": "npm --prefix client run dev",
     "dev": "concurrently \"npm:dev:server\" \"npm:dev:client\"",
-    "seed": "npm --prefix server run seed"
+    "seed": "npm --prefix server run seed",
+    "test": "npm --prefix server test"
   },
   "devDependencies": {
     "concurrently": "^9.0.1"

@@ -3,22 +3,36 @@ import Course from '../models/Course.js';
 import Lecture from '../models/Lecture.js';
 import User from '../models/User.js';
 import Progress from '../models/Progress.js';
+import Category from '../models/Category.js';
 import { requireFields } from '../middleware/validate.js';
 
 export async function listCourses(_req, res) {
   const items = await Course.find().populate('instructor', 'name email').sort({ createdAt: -1 });
-  return ok(res, items.map(c => ({ id: String(c._id), title: c.title, slug: c.slug, category: c.category, published: c.published, students: c.students, instructor: c.instructor ? { id: String(c.instructor._id), name: c.instructor.name } : null, lectures: (c.lectures||[]).length })));
+  return ok(res, items.map(c => ({ id: String(c._id), title: c.title, slug: c.slug, description: c.description, thumbnail: c.thumbnail, category: c.category, duration: c.duration, published: c.published, students: c.students, instructor: c.instructor ? { id: String(c.instructor._id), name: c.instructor.name } : null, lectures: (c.lectures||[]).length })));
 }
 export async function createCourse(req, res) {
-  requireFields(req.body || {}, ['title', 'slug', 'description', 'thumbnail', 'category', 'duration']);
+  requireFields(req.body || {}, ['title', 'slug', 'description', 'thumbnail', 'category', 'duration', 'instructorId']);
   const { title, slug, description, thumbnail, category, duration, level, price, published, instructorId } = req.body;
-  const instructor = instructorId || req.user.id;
-  const c = await Course.create({ title, slug: String(slug).toLowerCase().trim(), description, thumbnail, category, duration: Number(duration), level, price: Number(price||0), published: Boolean(published), instructor });
+  const instructor = await User.findById(instructorId).select('role disabled');
+  if (!instructor || instructor.disabled || instructor.role !== 'instructor') return fail(res, 400, 'BAD_REQUEST', 'instructorId must reference an active instructor');
+  const c = await Course.create({ title, slug: String(slug).toLowerCase().trim(), description, thumbnail, category, duration: Number(duration), level, price: Number(price||0), published: Boolean(published), instructor: instructor._id });
+  await Category.updateOne({ name: category.trim() }, { $setOnInsert: { name: category.trim() } }, { upsert: true });
   return ok(res, { id: String(c._id) }, 201);
 }
 export async function updateCourse(req, res) {
-  const c = await Course.findByIdAndUpdate(req.params.id, { $set: req.body }, { new: true });
+  const { instructorId, title, slug, description, thumbnail, category, duration, level, price, published } = req.body || {};
+  const update = {};
+  for (const [key, value] of Object.entries({ title, slug, description, thumbnail, category, duration, level, price, published })) {
+    if (value !== undefined) update[key] = value;
+  }
+  if (instructorId !== undefined) update.instructor = instructorId;
+  if (instructorId !== undefined) {
+    const instructor = await User.findById(instructorId).select('role disabled');
+    if (!instructor || instructor.disabled || instructor.role !== 'instructor') return fail(res, 400, 'BAD_REQUEST', 'instructorId must reference an active instructor');
+  }
+  const c = await Course.findByIdAndUpdate(req.params.id, { $set: update }, { new: true, runValidators: true });
   if (!c) return fail(res, 404, 'NOT_FOUND', 'Course not found');
+  if (update.category) await Category.updateOne({ name: String(update.category).trim() }, { $setOnInsert: { name: String(update.category).trim() } }, { upsert: true });
   return ok(res, { id: String(c._id) });
 }
 export async function deleteCourse(req, res) {
@@ -56,10 +70,17 @@ export async function listUsers(_req, res) {
 }
 export async function updateUser(req, res) {
   const { role, disabled } = req.body || {};
+  if (req.params.id === req.user.id && (role !== undefined || disabled !== undefined)) {
+    return fail(res, 400, 'BAD_REQUEST', 'Cannot change your own role or account status');
+  }
+  if (role !== undefined && !['student', 'instructor', 'admin'].includes(role)) {
+    return fail(res, 400, 'BAD_REQUEST', 'Invalid role');
+  }
   const update = {};
   if (role) update.role = role;
   if (typeof disabled === 'boolean') update.disabled = disabled;
-  const u = await User.findByIdAndUpdate(req.params.id, { $set: update }, { new: true }).select('-password');
+  if (!Object.keys(update).length) return fail(res, 400, 'BAD_REQUEST', 'No permitted fields provided');
+  const u = await User.findByIdAndUpdate(req.params.id, { $set: update }, { new: true, runValidators: true }).select('-password');
   if (!u) return fail(res, 404, 'NOT_FOUND', 'User not found');
   return ok(res, { id: String(u._id), role: u.role, disabled: u.disabled });
 }
@@ -86,15 +107,29 @@ export async function stats(_req, res) {
 }
 
 export async function listCategories(_req, res) {
-  const agg = await Course.aggregate([{ $group: { _id: '$category', count: { $sum: 1 } } }, { $sort: { _id: 1 } }]);
-  return ok(res, agg.map(a => ({ name: a._id, courses: a.count })));
+  const [categories, counts] = await Promise.all([
+    Category.find().sort({ name: 1 }),
+    Course.aggregate([{ $group: { _id: '$category', count: { $sum: 1 } } }]),
+  ]);
+  const courseCounts = new Map(counts.map((item) => [item._id, item.count]));
+  const names = new Set([...categories.map((category) => category.name), ...courseCounts.keys()]);
+  return ok(res, [...names].sort().map((name) => ({ name, courses: courseCounts.get(name) || 0 })));
 }
 
 export async function createCategory(req, res) {
-  // categories are derived from courses; "create" just validates name presence
-  const { name } = req.body || {};
+  const name = String(req.body?.name || '').trim();
   if (!name) return fail(res, 400, 'BAD_REQUEST', 'name required');
-  return ok(res, { name, created: true });
+  const category = await Category.create({ name });
+  return ok(res, { id: String(category._id), name: category.name }, 201);
+}
+
+export async function deleteCategory(req, res) {
+  const name = decodeURIComponent(req.params.name || '').trim();
+  const usedByCourses = await Course.exists({ category: name });
+  if (usedByCourses) return fail(res, 409, 'CONFLICT', 'Cannot delete a category assigned to courses');
+  const category = await Category.findOneAndDelete({ name });
+  if (!category) return fail(res, 404, 'NOT_FOUND', 'Category not found');
+  return ok(res, { deleted: true });
 }
 
 export async function listInstructors(_req, res) {
@@ -111,6 +146,15 @@ export async function listEnrollments(_req, res) {
     }
   }
   return ok(res, out);
+}
+
+export async function deleteEnrollment(req, res) {
+  const { userId, courseId } = req.params;
+  const user = await User.findOneAndUpdate({ _id: userId, enrolledCourses: courseId }, { $pull: { enrolledCourses: courseId, completedCourses: courseId } }, { new: true });
+  if (!user) return fail(res, 404, 'NOT_FOUND', 'User not found');
+  await Progress.deleteOne({ userId, courseId });
+  await Course.updateOne({ _id: courseId, students: { $gt: 0 } }, { $inc: { students: -1 } });
+  return ok(res, { deleted: true });
 }
 
 export async function analytics(_req, res) {

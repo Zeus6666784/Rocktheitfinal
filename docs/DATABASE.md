@@ -17,7 +17,7 @@ Source: derived from SYSTEM.md. Single source of truth for MongoDB collections a
 
 # Collections
 
-Current scope: 4 collections.
+Current scope: 5 collections.
 
 | Collection | Purpose                              |
 | ---------- | ------------------------------------ |
@@ -25,6 +25,7 @@ Current scope: 4 collections.
 | `courses`  | Course catalogue                     |
 | `lectures` | Lectures belonging to a course       |
 | `progress` | Per-user, per-course watch progress  |
+| `categories` | Administrator-managed course category names |
 
 All IDs are MongoDB ObjectIds unless noted. Timestamps (`createdAt`, `updatedAt`) are added via `timestamps: true`.
 
@@ -215,6 +216,20 @@ Lecture ──courseId──>       Course
 Progress ──userId──>        User
 Progress ──courseId──>      Course
 ```
+
+---
+
+# Categories
+
+Collection: `categories`.
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `name` | String | yes | unique trimmed display name |
+
+Course documents retain their string `category` field for compatibility.
+Categories provide an administrator-managed catalogue of allowed/displayed
+names; deleting a category assigned to a course is rejected.
 
 ---
 

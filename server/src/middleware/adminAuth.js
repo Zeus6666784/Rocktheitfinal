@@ -51,5 +51,9 @@ export const authLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  // Integration tests run many independent authentication cases through one
+  // in-process Supertest address. Skipping only in the explicit test runtime
+  // prevents one case from consuming another case's production IP budget.
+  skip: () => env.nodeEnv === 'test',
   message: { success: false, error: { code: 'RATE_LIMITED', message: 'Too many auth attempts. Try again later.' } },
 });
