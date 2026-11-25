@@ -13,21 +13,20 @@ import mongoose from 'mongoose';
 import Course from '../src/models/Course.js';
 import Lecture from '../src/models/Lecture.js';
 import User from '../src/models/User.js';
+import Progress from '../src/models/Progress.js';
+import Category from '../src/models/Category.js';
 
 // Catalog is ESM in the client. Resolve relative to repo root so the path is stable.
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const catalogPath = path.resolve(__dirname, '../../client/src/mocks/catalog.js');
 const { INSTRUCTORS, COURSES } = await import(pathToFileURL(catalogPath).href);
 
-// Lecture videos live in server/data/videos/ (NOT publicly served).
-// The catalog (client/src/mocks/catalog.js) is the source of truth; the
-// seed copies those videoUrls into Mongo. The public demo route is
-// /api/videos-public/:filename (anonymous, no admin token) so the SPA
-// <video> element can play without sending X-Admin-Key.
-const VIDEO_DEFAULT = '/api/videos-public/demo.mp4';
-const VIDEO_REACT_USESTATE = '/api/videos-public/react-usestate.mp4';
-const VIDEO_REACT_USEEFFECT = '/api/videos-public/react-useeffect.mp4';
-const VIDEO_DEEP_WORK = '/api/videos-public/deep-work.mp4';
+// Lecture videos live in server/data/videos/ and use authenticated managed
+// video URLs. The learning client exchanges these for an enrolled-user stream.
+const VIDEO_DEFAULT = '/api/videos/demo.mp4';
+const VIDEO_REACT_USESTATE = '/api/videos/react-usestate.mp4';
+const VIDEO_REACT_USEEFFECT = '/api/videos/react-useeffect.mp4';
+const VIDEO_DEEP_WORK = '/api/videos/deep-work.mp4';
 
 const COURSE_VIDEOS = {
   demo: [VIDEO_REACT_USESTATE, VIDEO_REACT_USESTATE, VIDEO_REACT_USESTATE, VIDEO_REACT_USEEFFECT, VIDEO_REACT_USEEFFECT],
@@ -52,6 +51,7 @@ function videoUrlFor(courseId, index) {
 async function main() {
   if (!process.env.MONGODB_URI) throw new Error('MONGODB_URI is not set');
   await mongoose.connect(process.env.MONGODB_URI);
+  await Promise.all([User.init(), Course.init(), Lecture.init(), Progress.init(), Category.init()]);
   // eslint-disable-next-line no-console
   console.log('connected');
 
@@ -131,6 +131,13 @@ async function main() {
     // eslint-disable-next-line no-console
     console.log(`seeded course ${course.title} (${lectureIds.length} lectures)`);
   }
+
+  const categoryNames = [...new Set(COURSES.map((course) => course.category).filter(Boolean))];
+  for (const name of categoryNames) {
+    await Category.updateOne({ name }, { $setOnInsert: { name } }, { upsert: true });
+  }
+  // eslint-disable-next-line no-console
+  console.log(`seeded ${categoryNames.length} categories`);
 
   await mongoose.disconnect();
   // eslint-disable-next-line no-console

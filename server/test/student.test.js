@@ -22,11 +22,13 @@ async function studentToken() {
 test('student can list and view courses', async () => {
   const inst = await User.create({ name: 'inst', email: 'i@x.com', password: 'hashed', role: 'instructor' });
   const c = await Course.create({ title: 'C', slug: 'c', description: 'd', thumbnail: 't.png', category: 'Cat', duration: 100, instructor: inst._id, published: true });
+  await Lecture.create({ courseId: c._id, title: 'L1', videoUrl: '/api/videos/demo.mp4', duration: 60, order: 1 });
   const { token } = await studentToken();
   const list = await request(app).get('/api/courses').set('Authorization', `Bearer ${token}`);
   assert.equal(list.status, 200);
   const detail = await request(app).get(`/api/courses/${c._id}`).set('Authorization', `Bearer ${token}`);
   assert.equal(detail.status, 200);
+  assert.equal(detail.body.data.lectures.length, 1);
 });
 
 test('student can enroll in a course', async () => {
@@ -52,7 +54,6 @@ test('enrolled student can stream a managed lecture with a byte range', async ()
   assert.equal(stream.headers['content-range'].startsWith('bytes 0-1/'), true);
 });
 
-<<<<<<< HEAD
 test('admin can inspect lecture metadata without enrolling', async () => {
   const inst = await User.create({ name: 'inst', email: 'i@x.com', password: 'hashed', role: 'instructor' });
   const admin = await User.create({ name: 'admin', email: 'a@x.com', password: 'hashed', role: 'admin' });
@@ -62,9 +63,6 @@ test('admin can inspect lecture metadata without enrolling', async () => {
   const detail = await request(app).get(`/api/lectures/${lec._id}`).set('Authorization', `Bearer ${token}`);
   assert.equal(detail.status, 200);
 });
-
-=======
->>>>>>> d3049be2fa48d1a8d54c72268f8227a1bf1e316f
 test('progress upsert and detail', async () => {
   const inst = await User.create({ name: 'inst', email: 'i@x.com', password: 'hashed', role: 'instructor' });
   const c = await Course.create({ title: 'C', slug: 'c', description: 'd', thumbnail: 't.png', category: 'Cat', duration: 100, instructor: inst._id, published: true });

@@ -1,47 +1,24 @@
-# Production Readiness Report
+# Production readiness
 
 Date: 2026-11-25
 
-## Current status
+The project builds successfully and its 32-test server integration suite
+passes. Authentication, database-backed role checks, protected media,
+enrolment-gated progress and certificates, course/lecture administration, and
+category/enrolment management are implemented.
 
-The application is buildable and has a verified server integration suite. Core
-student and administrator workflows are implemented: authentication,
-DB-authoritative session hydration, role authorization, course/lecture
-management, categories, enrollment removal, video upload and protected
-streaming, learning progress, and certificate metadata.
+## Verified security controls
 
-## Security controls verified
+- Protected requests reload the account, rejecting deleted and disabled users.
+- Expired, tampered, and demoted JWTs are rejected.
+- Progress, certificates, and lecture video streams require enrolment.
+- Managed videos are authenticated; only `demo.mp4` is public.
+- Video filenames are validated against traversal and invalid-character input.
+- Helmet, CORS, body-size limits, and rate limiters are enabled.
 
-- JWT authentication is rechecked against the database for protected routes.
-- Deleted, disabled, expired, tampered, and demoted accounts are rejected.
-- Progress and certificates require enrolment.
-- Managed videos use authenticated streams; only `demo.mp4` remains public.
-- Student managed-video playback is scoped to course enrolment and supports
-  HTTP byte ranges.
-- Video filenames are validated and path traversal is rejected.
-- Helmet, CORS configuration, request-size limits, and rate limiters remain
-  enabled in the server application.
+## Before release
 
-## Verification
-
-<<<<<<< HEAD
-- Server tests: 32 passing, 0 failing.
-=======
-- Server tests: 31 passing, 0 failing.
->>>>>>> d3049be2fa48d1a8d54c72268f8227a1bf1e316f
-- Production client build: passed.
-- Server syntax checks: passed for changed server modules.
-- Offline production dependency audits: 0 vulnerabilities in client and
-  server lockfile scopes.
-- Focused static scan: no `eval`, `dangerouslySetInnerHTML`, or non-demo
-  public-video references found in application source.
-
-## Remaining release work
-
-1. Add a browser E2E suite for the full student and administrator journeys.
-2. Run dependency audits in CI using the existing client/server lockfiles.
-3. Manually test deployment-specific CORS, MongoDB network access, upload
-   storage durability, and environment configuration before release.
-
-No deployment, Git operation, production-database mutation, or secret output
-occurred during this work.
+1. Resolve database network access from the deployment environment.
+2. Set production environment values securely; never commit them.
+3. Test CORS, uploads, durable media storage, and the full browser workflow.
+4. Add browser end-to-end tests and CI dependency auditing.

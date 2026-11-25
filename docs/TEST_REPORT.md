@@ -1,37 +1,16 @@
-# Learnify Test Report
+# Learnify test report
 
 Date: 2026-11-25
 
-## Automated verification
-
 | Command | Result |
 | --- | --- |
-<<<<<<< HEAD
 | `npm test` | PASS — 32 tests, 0 failures |
-=======
-| `npm test` | PASS — 31 tests, 0 failures |
->>>>>>> d3049be2fa48d1a8d54c72268f8227a1bf1e316f
 | `npm run build` | PASS — Vite production build completed |
-| `node --check` on changed server modules | PASS |
-| `npm audit --omit=dev --offline` in `client/` and `server/` | PASS — 0 vulnerabilities |
 
-The integration suite uses Supertest with mongodb-memory-server. It does not
-connect to the configured production database.
+The server tests use Supertest with an in-memory MongoDB instance. They do not
+connect to the configured Atlas database.
 
-## Covered behaviour
-
-- Registration, duplicate email, invalid password, login, disabled accounts,
-  and database-backed session hydration.
-- Student/instructor/admin authorization, expired/tampered JWTs, deleted or
-  disabled accounts, and immediate removal of access following role demotion.
-- Admin course, lecture, user, category, instructor, enrollment, analytics,
-  and settings operations.
-- Course discovery/enrolment, progress authorization, managed-video range
-  streaming, completion, and certificate metadata generation.
-- Public demo-video restriction, private-video authorization, and invalid/path
-  traversal filename rejection.
-
-## Limitations
-
-- No browser E2E runner is configured, so responsive UX and complete browser
-  navigation remain manual-test concerns.
+Coverage includes registration and login, session hydration, role and account
+state authorization, course enrolment, lectures, protected range streaming,
+progress, certificates, admin CRUD, categories, enrolments, and safe video
+filename handling. Browser end-to-end coverage is not yet configured.

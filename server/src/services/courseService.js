@@ -69,14 +69,18 @@ export async function listCourses({ q, category, page = 1, limit = 12, sort = 'n
 export async function getCourse(idOrSlug, { userId } = {}) {
   const query = isObjectId(idOrSlug) ? { _id: idOrSlug } : { slug: idOrSlug };
   const course = await Course.findOne(query)
-    .populate('instructor', 'name avatar bio')
-    .populate({ path: 'lectures', options: { sort: { order: 1 } } });
+    .populate('instructor', 'name avatar bio');
   if (!course) {
     const err = new Error('Course not found');
     err.status = 404;
     err.code = 'NOT_FOUND';
     throw err;
   }
+
+  // Lectures keep the authoritative courseId relationship.  The Course.lectures
+  // array is maintained for backwards compatibility, but querying by courseId
+  // avoids stale or partially-migrated arrays hiding valid lessons.
+  const courseLectures = await Lecture.find({ courseId: course._id }).sort({ order: 1 });
 
   let enrolled = false;
   let progressPct = 0;
@@ -92,8 +96,8 @@ export async function getCourse(idOrSlug, { userId } = {}) {
   }
 
   const canViewVideo = Boolean(userId && enrolled);
-  const lectures = (course.lectures || []).map((lec) => {
-    const prev = (course.lectures || []).find((l) => l.order === lec.order - 1);
+  const lectures = courseLectures.map((lec) => {
+    const prev = courseLectures.find((l) => l.order === lec.order - 1);
     // Keep the demo's Data Visualization lecture tied to the intended
     // source even if the Mongo document was seeded before the slug-based
     // video mapping fix. This avoids serving the generic placeholder video.
